@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frota Jornada — Painel</title>
+<style>
+  :root{
+    --bg:#0f1620; --card:#16202c; --card2:#1c2836; --line:#2a3746;
+    --text:#e8edf3; --muted:#8fa1b3; --amber:#f2a93b; --green:#3fbb78;
+    --blue:#4f9ce8; --purple:#b18ef0; --red:#e5615f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  header{
+    position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#101822,#0f1620 92%);
+    padding:14px 18px;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+  }
+  header h1{margin:0;font-size:17px;font-weight:700;}
+  header h1 span{color:var(--amber);}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .controls input,.controls select{
+    padding:8px 10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card2);color:var(--text);font-size:13.5px;
+  }
+  .live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.3;}100%{opacity:1;}}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .stat .num{font-size:22px;font-weight:800;}
+  .stat .lbl{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+    cursor:pointer;transition:border-color .15s;
+  }
+  .card:hover{border-color:var(--amber);}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+  .card .placa{font-size:16px;font-weight:800;}
+  .card .op{font-size:11.5px;color:var(--muted);}
+  .pill{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;}
+  .pill.andamento{background:#3a2f10;color:var(--amber);}
+  .pill.rota{background:#132a3c;color:var(--blue);}
+  .pill.retorno{background:#2b1f3a;color:var(--purple);}
+  .pill.concluido{background:#12301f;color:var(--green);}
+  .card .line{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:3px 0;}
+  .card .line b{color:var(--text);font-weight:600;}
+  .card .foot{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);}
+  .empty{color:var(--muted);text-align:center;padding:60px 20px;font-size:14px;}
+
+  /* modal */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(5,8,12,.75);z-index:40;
+    align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;
+  }
+  .overlay.show{display:flex;}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    max-width:560px;width:100%;padding:20px;margin-top:20px;}
+  .modal h2{margin-top:0;font-size:17px;}
+  .modal .close{float:right;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:12px 0;}
+  .grid2 .line{font-size:13px;color:var(--muted);}
+  .grid2 .line b{display:block;color:var(--text);font-size:14.5px;margin-top:2px;}
+  .loja-row{background:var(--card2);border-radius:10px;padding:10px 12px;margin-top:10px;}
+  .loja-row .lh{display:flex;justify-content:space-between;font-weight:700;font-size:13.5px;margin-bottom:6px;}
+  @media (max-width:640px){ .grid2{grid-template-columns:1fr 1fr;} header{padding:12px 14px;} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Frota <span>Jornada</span> · Painel</h1>
+  <div class="controls">
+    <input type="date" id="fData">
+    <select id="fStatus">
+      <option value="">Todos os status</option>
+      <option value="Em andamento">Em andamento</option>
+      <option value="Em rota / lojas">Em rota / lojas</option>
+      <option value="Retornando ao CD">Retornando ao CD</option>
+      <option value="Concluído">Concluído</option>
+    </select>
+    <select id="fOp">
+      <option value="">Todas operações</option>
+      <option value="LS">LS</option><option value="TL">TL</option>
+      <option value="HT">HT</option><option value="CV">CV</option>
+    </select>
+    <div class="live"><span class="dot"></span> Atualizando a cada <span id="secs">15</span>s</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats" id="stats"></div>
+  <div class="cards" id="cards"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script>
+const CONFIG = {
+  API_URL: 'COLE_AQUI_A_URL_DO_APPS_SCRIPT_WEB_APP'
+};
+const REFRESH_MS = 15000;
+let DADOS = [];
+
+const $ = s => document.querySelector(s);
+
+function hojeISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+$('#fData').value = hojeISO();
+
+async function apiGet(params){
+  const url = CONFIG.API_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+
+function statusInfo(status){
+  const map = {
+    'Em andamento':['andamento','Em andamento'],
+    'Em rota / lojas':['rota','Em rota / lojas'],
+    'Retornando ao CD':['retorno','Retornando ao CD'],
+    'Concluído':['concluido','Concluído']
+  };
+  return map[status] || ['andamento', status || '—'];
+}
+
+async function carregar(){
+  if(CONFIG.API_URL.includes('COLE_AQUI')){
+    $('#cards').innerHTML = '<div class="empty">Defina CONFIG.API_URL no topo do arquivo painel.html.</div>';
+    return;
+  }
+  const params = {action:'getLancamentos'};
+  if($('#fData').value) params.data = $('#fData').value;
+  if($('#fStatus').value) params.status = $('#fStatus').value;
+  try{
+    let dados = await apiGet(params);
+    if(!Array.isArray(dados)) dados = [];
+    if($('#fOp').value) dados = dados.filter(d => d.Operacao === $('#fOp').value);
+    DADOS = dados;
+    render();
+  }catch(e){
+    $('#cards').innerHTML = '<div class="empty">Falha ao carregar dados. Verifique a conexão.</div>';
+  }
+}
+
+function render(){
+  // stats
+  const total = DADOS.length;
+  const emAndamento = DADOS.filter(d => d.Status !== 'Concluído').length;
+  const concluidos = DADOS.filter(d => d.Status === 'Concluído').length;
+  const totalKm = DADOS.reduce((s,d)=> s + (parseFloat(d.TotalKm)||0), 0);
+  $('#stats').innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Lançamentos</div></div>
+    <div class="stat"><div class="num" style="color:var(--amber)">${emAndamento}</div><div class="lbl">Em andamento</div></div>
+    <div class="stat"><div class="num" style="color:var(--green)">${concluidos}</div><div class="lbl">Concluídos</div></div>
+    <div class="stat"><div class="num">${totalKm ? totalKm.toLocaleString('pt-BR') : '—'}</div><div class="lbl">Km rodados</div></div>
+  `;
+
+  if(DADOS.length === 0){
+    $('#cards').innerHTML = '<div class="empty">Nenhum lançamento para os filtros selecionados.</div>';
+    return;
+  }
+
+  $('#cards').innerHTML = DADOS.map(d => {
+    const [cls,label] = statusInfo(d.Status);
+    const paradas = d.Paradas || [];
+    const lojaAtual = paradas.find(p => p.HoraChegada && !p.HoraSaida);
+    const situacao = lojaAtual ? `Na loja ${lojaAtual.NumeroLoja}` : (paradas.length ? `${paradas.filter(p=>p.HoraSaida).length}/${paradas.length} lojas concluídas` : 'Sem lojas registradas');
+    return `
+      <div class="card" onclick="abrirDetalhe('${d.ID}')">
+        <div class="top">
+          <div><div class="placa">${d.Placa || '—'}</div><div class="op">${d.Operacao || ''} · ${d.Destino || 'sem destino'}</div></div>
+          <span class="pill ${cls}">${label}</span>
+        </div>
+        <div class="line"><span>Saída programada</span><b>${d.HoraProgramadaSaida || '—'}</b></div>
+        <div class="line"><span>Situação</span><b>${situacao}</b></div>
+        ${d.TotalHorasMotorista ? `<div class="line"><span>Horas motorista</span><b>${d.TotalHorasMotorista}</b></div>` : ''}
+        ${d.TotalKm ? `<div class="line"><span>Km rodados</span><b>${d.TotalKm}</b></div>` : ''}
+        <div class="foot">Atualizado ${d.UltimaAtualizacao || '—'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function abrirDetalhe(id){
+  const d = DADOS.find(x => x.ID === id);
+  if(!d) return;
+  const [cls,label] = statusInfo(d.Status);
+  const paradas = d.Paradas || [];
+  $('#modalBody').innerHTML = `
+    <span class="close" onclick="fecharDetalhe()">&times;</span>
+    <h2>${d.Placa} <span class="pill ${cls}" style="margin-left:8px">${label}</span></h2>
+    <div class="grid2">
+      <div class="line">Operação<b>${d.Operacao || '—'}</b></div>
+      <div class="line">Destino<b>${d.Destino || '—'}</b></div>
+      <div class="line">Data<b>${d.Data || '—'}</b></div>
+      <div class="line">Data carregamento<b>${d.DataCarregamento || '—'}</b></div>
+      <div class="line">Início do ponto<b>${d.HoraInicioPonto || '—'}</b></div>
+      <div class="line">Saída programada<b>${d.HoraProgramadaSaida || '—'}</b></div>
+      <div class="line">Km saída<b>${d.KmSaida || '—'}</b></div>
+      <div class="line">Km chegada<b>${d.KmChegada || '—'}</b></div>
+      <div class="line">Total Km<b>${d.TotalKm || '—'}</b></div>
+      <div class="line">Chegada no CD<b>${d.HoraChegadaCD || '—'}</b></div>
+      <div class="line">Total horas motorista<b>${d.TotalHorasMotorista || '—'}</b></div>
+      <div class="line">Total horas nas lojas<b>${d.TotalHorasLojas || '—'}</b></div>
+      <div class="line">Última atualização<b>${d.UltimaAtualizacao || '—'}</b></div>
+    </div>
+    <div style="font-weight:700;font-size:13.5px;margin-top:14px;color:var(--amber)">LOJAS</div>
+    ${paradas.length === 0 ? '<div style="color:var(--muted);font-size:13px;margin-top:6px">Nenhuma loja registrada ainda.</div>' :
+      paradas.map(p => `
+        <div class="loja-row">
+          <div class="lh"><span>Loja ${p.NumeroLoja}</span><span style="color:var(--green)">${p.TotalLoja || ''}</span></div>
+          <div class="grid2" style="margin:0">
+            <div class="line">Chegada<b>${p.HoraChegada || '—'}</b></div>
+            <div class="line">Saída<b>${p.HoraSaida || '—'}</b></div>
+            <div class="line">Abertura baú<b>${p.HoraAberturaBau || '—'}</b></div>
+            <div class="line">Fechamento baú<b>${p.HoraFechamentoBau || '—'}</b></div>
+          </div>
+        </div>
+      `).join('')
+    }
+  `;
+  $('#overlay').classList.add('show');
+}
+function fecharDetalhe(){ $('#overlay').classList.remove('show'); }
+$('#overlay').addEventListener('click', (e)=>{ if(e.target.id === 'overlay') fecharDetalhe(); });
+
+$('#fData').addEventListener('change', carregar);
+$('#fStatus').addEventListener('change', carregar);
+$('#fOp').addEventListener('change', carregar);
+
+// contador regressivo + auto refresh
+let secsLeft = REFRESH_MS/1000;
+setInterval(()=>{
+  secsLeft--;
+  if(secsLeft <= 0){ secsLeft = REFRESH_MS/1000; carregar(); }
+  $('#secs').textContent = secsLeft;
+}, 1000);
+
+carregar();
+</script>
+</body>
+</html>

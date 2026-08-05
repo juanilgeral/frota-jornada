@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Frota Jornada — Motorista</title>
+<style>
+  :root{
+    --bg:#0f1620;
+    --card:#16202c;
+    --card2:#1c2836;
+    --line:#2a3746;
+    --text:#e8edf3;
+    --muted:#8fa1b3;
+    --amber:#f2a93b;
+    --amber-d:#c8811d;
+    --green:#3fbb78;
+    --red:#e5615f;
+    --blue:#4f9ce8;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  body{padding-bottom:40px;}
+  header{
+    position:sticky;top:0;z-index:10;
+    background:linear-gradient(180deg,#101822,#0f1620 90%);
+    padding:16px 18px 14px;border-bottom:1px solid var(--line);
+  }
+  header h1{margin:0;font-size:17px;letter-spacing:.3px;font-weight:700;}
+  header h1 span{color:var(--amber);}
+  header .sub{margin-top:3px;font-size:12.5px;color:var(--muted);}
+  .wrap{max-width:520px;margin:0 auto;padding:16px;}
+  .card{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px;margin-bottom:14px;
+  }
+  .card h2{
+    margin:0 0 14px;font-size:14px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--amber);display:flex;align-items:center;gap:8px;
+  }
+  .card h2 .n{
+    background:var(--amber);color:#1a1204;width:20px;height:20px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;
+  }
+  label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 5px;}
+  input,select{
+    width:100%;padding:12px 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card2);color:var(--text);font-size:15.5px;
+  }
+  input:focus,select:focus{outline:2px solid var(--amber);border-color:var(--amber);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .opgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px;}
+  .opbtn{
+    padding:12px 4px;text-align:center;border-radius:10px;border:1px solid var(--line);
+    background:var(--card2);color:var(--muted);font-weight:700;font-size:14px;cursor:pointer;
+  }
+  .opbtn.active{background:var(--amber);color:#1a1204;border-color:var(--amber);}
+  button.primary{
+    width:100%;margin-top:16px;padding:14px;border:none;border-radius:12px;
+    background:var(--amber);color:#1a1204;font-weight:800;font-size:15.5px;cursor:pointer;
+  }
+  button.primary:active{background:var(--amber-d);}
+  button.secondary{
+    width:100%;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:12px;
+    background:transparent;color:var(--text);font-weight:600;font-size:14.5px;cursor:pointer;
+  }
+  button.ghost{
+    padding:9px 12px;border:1px dashed var(--line);border-radius:10px;
+    background:transparent;color:var(--amber);font-weight:700;font-size:13px;cursor:pointer;
+  }
+  .pill{
+    display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;
+  }
+  .pill.andamento{background:#3a2f10;color:var(--amber);}
+  .pill.rota{background:#132a3c;color:var(--blue);}
+  .pill.retorno{background:#2b1f3a;color:#b18ef0;}
+  .pill.concluido{background:#12301f;color:var(--green);}
+  .total{
+    margin-top:10px;padding:10px 12px;background:var(--card2);border-radius:10px;
+    font-size:13.5px;color:var(--muted);display:flex;justify-content:space-between;
+  }
+  .total b{color:var(--text);font-size:14.5px;}
+  .loja-block{border-top:1px solid var(--line);padding-top:12px;margin-top:12px;}
+  .loja-block:first-of-type{border-top:none;padding-top:0;margin-top:0;}
+  .loja-title{font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+  .badge-ok{color:var(--green);font-size:12px;font-weight:700;}
+  .savebar{display:flex;gap:8px;margin-top:8px;}
+  .savebar button{flex:1;}
+  .hidden{display:none !important;}
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    background:#20304a;color:var(--text);padding:11px 18px;border-radius:10px;
+    font-size:13.5px;border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.4);
+    opacity:0;transition:opacity .25s;pointer-events:none;z-index:50;
+  }
+  .toast.show{opacity:1;}
+  .toast.err{background:#3a1a1a;color:#ffb3b0;border-color:#5c2a2a;}
+  .summary-line{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:4px 0;}
+  .summary-line b{color:var(--text);}
+  .placa-hint{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .link-reset{display:block;text-align:center;margin-top:18px;color:var(--muted);font-size:12.5px;text-decoration:underline;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Frota <span>Jornada</span></h1>
+  <div class="sub" id="statusLine">Preencha os dados de início do dia</div>
+</header>
+
+<div class="wrap" id="app"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======================= CONFIG ======================= */
+const CONFIG = {
+  // Cole aqui a URL do App da Web publicado no Apps Script (Code.gs)
+  API_URL: 'COLE_AQUI_A_URL_DO_APPS_SCRIPT_WEB_APP'
+};
+
+/* ======================= ESTADO ======================= */
+let PLACAS = [];
+let LANC = null; // lançamento atual (objeto completo, vindo do backend)
+
+const $ = (sel) => document.querySelector(sel);
+const app = $('#app');
+
+/* ======================= API ======================= */
+async function apiGet(params){
+  const url = CONFIG.API_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+async function apiPost(body){
+  const res = await fetch(CONFIG.API_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'}, // evita preflight CORS no Apps Script
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+function toast(msg, isErr){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=> t.className = 'toast', 2200);
+}
+
+/* ======================= INIT ======================= */
+function hojeISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function agoraHHMM(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+async function init(){
+  if(CONFIG.API_URL.includes('COLE_AQUI')){
+    app.innerHTML = '<div class="card"><h2>Configuração pendente</h2>'+
+      '<p style="color:var(--muted);font-size:13.5px">Defina CONFIG.API_URL no topo do arquivo index.html com a URL do App da Web do Apps Script.</p></div>';
+    return;
+  }
+  try{
+    PLACAS = await apiGet({action:'getPlacas'});
+  }catch(e){ PLACAS = []; }
+
+  const savedId = localStorage.getItem('frota_jornada_id');
+  if(savedId){
+    try{
+      const l = await apiGet({action:'getLancamento', id: savedId});
+      if(l && l.ID && l.Status !== 'Concluído'){
+        LANC = l;
+        renderAndamento();
+        return;
+      }
+    }catch(e){}
+  }
+  renderInicio();
+}
+
+/* ======================= TELA 1: INÍCIO DO DIA ======================= */
+function renderInicio(){
+  $('#statusLine').textContent = 'Preencha os dados de início do dia';
+  const ops = ['LS','TL','HT','CV'];
+  app.innerHTML = `
+    <div class="card">
+      <h2><span class="n">1</span> Início da jornada</h2>
+      <div class="row2">
+        <div><label>Data</label><input type="date" id="fData" value="${hojeISO()}"></div>
+        <div><label>Hora início do ponto</label><input type="time" id="fHoraInicio" value="${agoraHHMM()}"></div>
+      </div>
+      <label>Hora programada de saída</label>
+      <input type="time" id="fHoraProgSaida">
+
+      <label>Operação</label>
+      <div class="opgrid" id="opGrid">
+        ${ops.map(o=>`<div class="opbtn" data-op="${o}">${o}</div>`).join('')}
+      </div>
+
+      <label>Placa do veículo</label>
+      <select id="fPlaca"><option value="">Selecione a placa</option></select>
+      <div class="placa-hint">Formato Mercosul ou nacional — lista vem do cadastro de frota.</div>
+
+      <label>Destino</label>
+      <input type="text" id="fDestino" placeholder="Ex.: Zona Oeste / Loja 042...">
+
+      <label>Data que foi carregado</label>
+      <input type="date" id="fDataCarregado" value="${hojeISO()}">
+
+      <label>Km de saída</label>
+      <input type="number" inputmode="numeric" id="fKmSaida" placeholder="Ex.: 154320">
+
+      <button class="primary" id="btnIniciar">Iniciar jornada</button>
+    </div>
+  `;
+
+  let opSelecionada = '';
+  document.querySelectorAll('.opbtn').forEach(btn=>{
+    btn.onclick = ()=>{
+      document.querySelectorAll('.opbtn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      opSelecionada = btn.dataset.op;
+    };
+  });
+
+  // Operação (do dia) e Placa (do veículo) são independentes uma da outra —
+  // a lista de placas mostra todo o cadastro, agrupada por OP só pra facilitar achar.
+  preencherPlacas();
+  function preencherPlacas(){
+    const sel = $('#fPlaca');
+    if(PLACAS.length === 0){
+      sel.innerHTML = '<option value="">Nenhuma placa cadastrada</option>';
+      return;
+    }
+    const porOp = {};
+    PLACAS.forEach(p => {
+      const chave = p.op.toUpperCase() || 'OUTROS';
+      (porOp[chave] = porOp[chave] || []).push(p);
+    });
+    let html = '<option value="">Selecione a placa</option>';
+    Object.keys(porOp).sort().forEach(op => {
+      html += `<optgroup label="${op}">` +
+        porOp[op].map(p => `<option value="${p.placa}">${p.placa}${p.frota ? ' — Frota '+p.frota : ''}</option>`).join('') +
+        `</optgroup>`;
+    });
+    sel.innerHTML = html;
+  }
+
+  $('#btnIniciar').onclick = async () => {
+    const dados = {
+      Data: $('#fData').value,
+      HoraInicioPonto: $('#fHoraInicio').value,
+      HoraProgramadaSaida: $('#fHoraProgSaida').value,
+      Operacao: opSelecionada,
+      Placa: $('#fPlaca').value,
+      Destino: $('#fDestino').value,
+      DataCarregamento: $('#fDataCarregado').value,
+      KmSaida: $('#fKmSaida').value
+    };
+    if(!dados.Data || !dados.HoraInicioPonto || !dados.Operacao || !dados.Placa || !dados.KmSaida){
+      toast('Preencha data, hora, operação, placa e km de saída.', true);
+      return;
+    }
+    $('#btnIniciar').disabled = true;
+    $('#btnIniciar').textContent = 'Salvando...';
+    try{
+      const r = await apiPost({action:'criarLancamento', ...dados});
+      if(r.ok){
+        localStorage.setItem('frota_jornada_id', r.id);
+        LANC = await apiGet({action:'getLancamento', id: r.id});
+        toast('Jornada iniciada!');
+        renderAndamento();
+      }else{
+        toast(r.erro || 'Erro ao salvar', true);
+      }
+    }catch(e){
+      toast('Falha de conexão', true);
+    }
+    $('#btnIniciar').disabled = false;
+    $('#btnIniciar').textContent = 'Iniciar jornada';
+  };
+}
+
+/* ======================= TELA 2: EM ANDAMENTO ======================= */
+function statusPill(status){
+  const map = {
+    'Em andamento':['andamento','Em andamento'],
+    'Em rota / lojas':['rota','Em rota / lojas'],
+    'Retornando ao CD':['retorno','Retornando ao CD'],
+    'Concluído':['concluido','Concluído']
+  };
+  const [cls,label] = map[status] || ['andamento', status || '—'];
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function renderAndamento(){
+  $('#statusLine').innerHTML = `${LANC.Operacao} · ${LANC.Placa} · ${statusPill(LANC.Status)}`;
+
+  let html = `
+    <div class="card">
+      <h2><span class="n">✓</span> Resumo da jornada</h2>
+      <div class="summary-line"><span>Data</span><b>${LANC.Data}</b></div>
+      <div class="summary-line"><span>Destino</span><b>${LANC.Destino || '—'}</b></div>
+      <div class="summary-line"><span>Km saída</span><b>${LANC.KmSaida || '—'}</b></div>
+      ${LANC.TotalKm ? `<div class="summary-line"><span>Total Km</span><b>${LANC.TotalKm}</b></div>` : ''}
+      ${LANC.TotalHorasMotorista ? `<div class="summary-line"><span>Total horas motorista</span><b>${LANC.TotalHorasMotorista}</b></div>` : ''}
+      ${LANC.TotalHorasLojas ? `<div class="summary-line"><span>Total horas nas lojas</span><b>${LANC.TotalHorasLojas}</b></div>` : ''}
+    </div>
+  `;
+
+  // Bloco das lojas
+  const paradas = LANC.Paradas || [];
+  html += `<div class="card"><h2><span class="n">2</span> Lojas de entrega</h2>`;
+  paradas.forEach((p, idx) => {
+    html += renderLojaBlock(p, idx === paradas.length - 1);
+  });
+  html += `<button class="ghost" id="btnAddLoja" style="margin-top:14px;width:100%">+ Adicionar próxima loja (carga compartilhada)</button>`;
+  html += `</div>`;
+
+  // Bloco de retorno ao CD
+  const lojasCompletas = paradas.length > 0 && paradas.every(p => p.HoraSaida);
+  html += `
+    <div class="card">
+      <h2><span class="n">3</span> Retorno ao CD</h2>
+      <label>Hora de chegada do veículo no CD</label>
+      <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || ''}">
+      <div class="row2">
+        <div><label>Data chegada do motorista</label><input type="date" id="fDataChegada" value="${LANC.DataChegadaMotorista || LANC.Data}"></div>
+        <div><label>Km de chegada</label><input type="number" inputmode="numeric" id="fKmChegada" value="${LANC.KmChegada || ''}"></div>
+      </div>
+      <button class="primary" id="btnFinalizar">Salvar chegada / finalizar</button>
+    </div>
+  `;
+
+  html += `<div class="link-reset" id="btnNovo">Encerrar e iniciar novo lançamento</div>`;
+
+  app.innerHTML = html;
+
+  document.querySelectorAll('.btnSalvarLoja').forEach(btn=>{
+    btn.onclick = () => salvarLoja(btn.dataset.id);
+  });
+  $('#btnAddLoja').onclick = adicionarLoja;
+  $('#btnFinalizar').onclick = finalizarJornada;
+  $('#btnNovo').onclick = () => {
+    if(confirm('Isso vai limpar o lançamento atual deste aparelho (os dados continuam salvos na planilha). Confirmar?')){
+      localStorage.removeItem('frota_jornada_id');
+      LANC = null;
+      renderInicio();
+    }
+  };
+}
+
+function renderLojaBlock(p, isUltima){
+  return `
+    <div class="loja-block">
+      <div class="loja-title">
+        <span>Loja ${p.NumeroLoja}</span>
+        ${p.TotalLoja ? `<span class="badge-ok">Total: ${p.TotalLoja}</span>` : ''}
+      </div>
+      <div class="row2">
+        <div><label>Chegada</label><input type="time" id="p_${p.ID}_chegada" value="${p.HoraChegada||''}"></div>
+        <div><label>Abertura do baú</label><input type="time" id="p_${p.ID}_abertura" value="${p.HoraAberturaBau||''}"></div>
+      </div>
+      <div class="row2">
+        <div><label>Fechamento do baú</label><input type="time" id="p_${p.ID}_fechamento" value="${p.HoraFechamentoBau||''}"></div>
+        <div><label>Saída</label><input type="time" id="p_${p.ID}_saida" value="${p.HoraSaida||''}"></div>
+      </div>
+      <div class="savebar">
+        <button class="secondary btnSalvarLoja" data-id="${p.ID}">Salvar loja ${p.NumeroLoja}</button>
+      </div>
+    </div>
+  `;
+}
+
+async function salvarLoja(paradaId){
+  const campos = {
+    HoraChegada: $(`#p_${paradaId}_chegada`).value,
+    HoraAberturaBau: $(`#p_${paradaId}_abertura`).value,
+    HoraFechamentoBau: $(`#p_${paradaId}_fechamento`).value,
+    HoraSaida: $(`#p_${paradaId}_saida`).value
+  };
+  try{
+    const r = await apiPost({action:'atualizarParada', id: paradaId, campos});
+    if(r.ok){
+      toast('Loja atualizada');
+      LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+      renderAndamento();
+    }else{
+      toast(r.erro || 'Erro ao salvar', true);
+    }
+  }catch(e){ toast('Falha de conexão', true); }
+}
+
+async function adicionarLoja(){
+  const paradas = LANC.Paradas || [];
+  const proximoNumero = paradas.length + 1;
+  try{
+    const r = await apiPost({action:'criarParada', lancamentoId: LANC.ID, numeroLoja: proximoNumero});
+    if(r.ok){
+      LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+      renderAndamento();
+    }
+  }catch(e){ toast('Falha de conexão', true); }
+}
+
+async function finalizarJornada(){
+  const campos = {
+    HoraChegadaCD: $('#fHoraCD').value,
+    DataChegadaMotorista: $('#fDataChegada').value,
+    KmChegada: $('#fKmChegada').value
+  };
+  if(!campos.HoraChegadaCD || !campos.KmChegada){
+    toast('Informe hora de chegada no CD e km de chegada.', true);
+    return;
+  }
+  try{
+    const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos});
+    if(r.ok){
+      toast('Jornada finalizada!');
+      LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+      renderAndamento();
+    }else{
+      toast(r.erro || 'Erro ao salvar', true);
+    }
+  }catch(e){ toast('Falha de conexão', true); }
+}
+
+init();
+</script>
+</body>
+</html>
