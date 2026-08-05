@@ -103,7 +103,7 @@
 
 <script>
 const CONFIG = {
-  API_URL: 'COLE_AQUI_A_URL_DO_APPS_SCRIPT_WEB_APP'
+  API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec'
 };
 const REFRESH_MS = 15000;
 let DADOS = [];
@@ -177,7 +177,7 @@ function render(){
     return `
       <div class="card" onclick="abrirDetalhe('${d.ID}')">
         <div class="top">
-          <div><div class="placa">${d.Placa || '—'}</div><div class="op">${d.Operacao || ''} · ${d.Destino || 'sem destino'}</div></div>
+          <div><div class="placa">${d.Placa || '—'}</div><div class="op">${d.Motorista ? d.Motorista + ' · ' : ''}${d.Operacao || ''} · ${d.Destino || 'sem destino'}</div></div>
           <span class="pill ${cls}">${label}</span>
         </div>
         <div class="line"><span>Saída programada</span><b>${d.HoraProgramadaSaida || '—'}</b></div>
@@ -199,6 +199,7 @@ function abrirDetalhe(id){
     <span class="close" onclick="fecharDetalhe()">&times;</span>
     <h2>${d.Placa} <span class="pill ${cls}" style="margin-left:8px">${label}</span></h2>
     <div class="grid2">
+      <div class="line">Motorista<b>${d.Motorista || '—'}</b></div>
       <div class="line">Operação<b>${d.Operacao || '—'}</b></div>
       <div class="line">Destino<b>${d.Destino || '—'}</b></div>
       <div class="line">Data<b>${d.Data || '—'}</b></div>
