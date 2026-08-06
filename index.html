@@ -408,6 +408,7 @@ function renderAndamento(){
         <div><label>Km de chegada</label><input type="number" inputmode="numeric" id="fKmChegada" value="${LANC.KmChegada || ''}"></div>
       </div>
       <button class="primary" id="btnFinalizar">Salvar chegada / finalizar</button>
+      <div class="placa-hint" id="status_retorno">Cada campo salva sozinho ao sair dele.</div>
     </div>
   `;
 
@@ -418,6 +419,8 @@ function renderAndamento(){
   document.querySelectorAll('.btnSalvarLoja').forEach(btn=>{
     btn.onclick = () => salvarLoja(btn.dataset.id);
   });
+  ligarAutoSaveLojas();
+  ligarAutoSaveRetorno();
   $('#btnAddLoja').onclick = adicionarLoja;
   $('#btnFinalizar').onclick = finalizarJornada;
   $('#btnNovo').onclick = () => {
@@ -434,7 +437,7 @@ function renderLojaBlock(p, isUltima){
     <div class="loja-block">
       <div class="loja-title">
         <span>Loja ${p.NumeroLoja}</span>
-        ${p.TotalLoja ? `<span class="badge-ok">Total: ${p.TotalLoja}</span>` : ''}
+        <span class="badge-ok" id="total_${p.ID}">${p.TotalLoja ? 'Total: '+p.TotalLoja : ''}</span>
       </div>
       <div class="row2">
         <div><label>Chegada</label><input type="time" id="p_${p.ID}_chegada" value="${p.HoraChegada||''}"></div>
@@ -447,8 +450,87 @@ function renderLojaBlock(p, isUltima){
       <div class="savebar">
         <button class="secondary btnSalvarLoja" data-id="${p.ID}">Salvar loja ${p.NumeroLoja}</button>
       </div>
+      <div class="placa-hint" id="status_${p.ID}">Cada campo salva sozinho ao sair dele.</div>
     </div>
   `;
+}
+
+// Salva o campo assim que o motorista sai dele (evento "change") — não espera
+// clique em nenhum botão, então nada se perde se ele trocar de tela na hora.
+function ligarAutoSaveLojas(){
+  const paradas = LANC.Paradas || [];
+  paradas.forEach(p => {
+    ['chegada','abertura','fechamento','saida'].forEach(campo => {
+      const el = document.getElementById(`p_${p.ID}_${campo}`);
+      if(el) el.addEventListener('change', () => autoSalvarLoja(p.ID));
+    });
+  });
+}
+
+async function autoSalvarLoja(paradaId){
+  const campos = camposDaLoja(paradaId);
+  const status = document.getElementById(`status_${paradaId}`);
+  if(status) status.textContent = 'Salvando...';
+  try{
+    const r = await apiPost({action:'atualizarParada', id: paradaId, campos});
+    if(r.ok){
+      if(status) status.textContent = 'Salvo ✓';
+      // atualiza o total na tela sem recarregar tudo (não atrapalha quem ainda tá digitando)
+      const badge = document.getElementById(`total_${paradaId}`);
+      if(badge && campos.HoraChegada && campos.HoraSaida){
+        const total = calcularTotalLocal(campos.HoraChegada, campos.HoraSaida);
+        if(total) badge.textContent = 'Total: ' + total;
+      }
+      // mantém o LANC em memória sincronizado com o que já foi salvo
+      const p = (LANC.Paradas || []).find(x => x.ID === paradaId);
+      if(p) Object.assign(p, campos);
+    }else{
+      if(status) status.textContent = 'Erro ao salvar!';
+      toast(r.erro || 'Erro ao salvar', true);
+    }
+  }catch(e){
+    if(status) status.textContent = 'Falha de conexão — tente de novo';
+    toast('Falha de conexão', true);
+  }
+}
+
+function calcularTotalLocal(horaIni, horaFim){
+  const [h1,m1] = horaIni.split(':').map(Number);
+  const [h2,m2] = horaFim.split(':').map(Number);
+  let diff = (h2*60+m2) - (h1*60+m1);
+  if(diff < 0) diff += 24*60;
+  const h = Math.floor(diff/60), m = diff%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+
+function ligarAutoSaveRetorno(){
+  ['fHoraCD','fDataChegada','fKmChegada'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('change', autoSalvarRetorno);
+  });
+}
+
+async function autoSalvarRetorno(){
+  const campos = {
+    HoraChegadaCD: $('#fHoraCD').value,
+    DataChegadaMotorista: $('#fDataChegada').value,
+    KmChegada: $('#fKmChegada').value
+  };
+  const status = document.getElementById('status_retorno');
+  if(status) status.textContent = 'Salvando...';
+  try{
+    const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos});
+    if(r.ok){
+      if(status) status.textContent = 'Salvo ✓';
+      Object.assign(LANC, campos);
+    }else{
+      if(status) status.textContent = 'Erro ao salvar!';
+      toast(r.erro || 'Erro ao salvar', true);
+    }
+  }catch(e){
+    if(status) status.textContent = 'Falha de conexão — tente de novo';
+    toast('Falha de conexão', true);
+  }
 }
 
 async function salvarLoja(paradaId){
