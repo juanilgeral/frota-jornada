@@ -11,7 +11,7 @@
     --card2:#1c2836;
     --line:#2a3746;
     --text:#e8edf3;
-    --muted:#8fa1b3;
+    --muted:#b7c4d1;
     --amber:#f2a93b;
     --amber-d:#c8811d;
     --green:#3fbb78;
@@ -50,6 +50,7 @@
     background:var(--card2);color:var(--text);font-size:15.5px;
   }
   input:focus,select:focus{outline:2px solid var(--amber);border-color:var(--amber);}
+  input::placeholder{color:#7c8b9c;opacity:1;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
   .opgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px;}
@@ -166,6 +167,12 @@ function horasDesdeUltimaAtualizacao(ultimaAtualizacao){
 function hojeISO(){
   const d = new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function formatarDataBR(iso){
+  if(!iso) return '—';
+  const p = String(iso).split('-');
+  if(p.length !== 3) return iso;
+  return `${p[2]}/${p[1]}/${p[0]}`;
 }
 function agoraHHMM(){
   const d = new Date();
@@ -329,7 +336,7 @@ function renderBloqueado(){
     <div class="card" style="border-color:var(--red)">
       <h2 style="color:var(--red)">⚠ Lançamento sem movimento há muito tempo</h2>
       <p style="color:var(--muted);font-size:13.5px;margin:0 0 6px">
-        Este lançamento (iniciado em <b style="color:var(--text)">${LANC.Data}</b>) está há mais de
+        Este lançamento (iniciado em <b style="color:var(--text)">${formatarDataBR(LANC.Data)}</b>) está há mais de
         ${HORAS_LIMITE_SEM_ATUALIZACAO}h sem nenhuma atualização. Por segurança, não é mais possível
         editar por aqui.
       </p>
@@ -371,7 +378,7 @@ function renderAndamento(){
     <div class="card">
       <h2><span class="n">✓</span> Resumo da jornada</h2>
       <div class="summary-line"><span>Motorista</span><b>${LANC.Motorista || '—'}</b></div>
-      <div class="summary-line"><span>Data</span><b>${LANC.Data}</b></div>
+      <div class="summary-line"><span>Data</span><b>${formatarDataBR(LANC.Data)}</b></div>
       <div class="summary-line"><span>Destino</span><b>${LANC.Destino || '—'}</b></div>
       <div class="summary-line"><span>Km saída</span><b>${LANC.KmSaida || '—'}</b></div>
       ${LANC.TotalKm ? `<div class="summary-line"><span>Total Km</span><b>${LANC.TotalKm}</b></div>` : ''}
@@ -445,12 +452,7 @@ function renderLojaBlock(p, isUltima){
 }
 
 async function salvarLoja(paradaId){
-  const campos = {
-    HoraChegada: $(`#p_${paradaId}_chegada`).value,
-    HoraAberturaBau: $(`#p_${paradaId}_abertura`).value,
-    HoraFechamentoBau: $(`#p_${paradaId}_fechamento`).value,
-    HoraSaida: $(`#p_${paradaId}_saida`).value
-  };
+  const campos = camposDaLoja(paradaId);
   try{
     const r = await apiPost({action:'atualizarParada', id: paradaId, campos});
     if(r.ok){
@@ -463,10 +465,36 @@ async function salvarLoja(paradaId){
   }catch(e){ toast('Falha de conexão', true); }
 }
 
-async function adicionarLoja(){
+function camposDaLoja(paradaId){
+  return {
+    HoraChegada: $(`#p_${paradaId}_chegada`).value,
+    HoraAberturaBau: $(`#p_${paradaId}_abertura`).value,
+    HoraFechamentoBau: $(`#p_${paradaId}_fechamento`).value,
+    HoraSaida: $(`#p_${paradaId}_saida`).value
+  };
+}
+
+// Salva o que estiver preenchido em TODAS as lojas na tela antes de qualquer
+// ação que recarregue os dados — evita perder o que o motorista já digitou
+// mas ainda não tinha clicado em "Salvar loja".
+async function salvarLojasPendentes(){
   const paradas = LANC.Paradas || [];
-  const proximoNumero = paradas.length + 1;
+  for(const p of paradas){
+    const el = document.getElementById(`p_${p.ID}_chegada`);
+    if(!el) continue;
+    const campos = camposDaLoja(p.ID);
+    await apiPost({action:'atualizarParada', id: p.ID, campos});
+  }
+}
+
+async function adicionarLoja(){
+  const btn = $('#btnAddLoja');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
   try{
+    await salvarLojasPendentes();
+    const paradas = LANC.Paradas || [];
+    const proximoNumero = paradas.length + 1;
     const r = await apiPost({action:'criarParada', lancamentoId: LANC.ID, numeroLoja: proximoNumero});
     if(r.ok){
       LANC = await apiGet({action:'getLancamento', id: LANC.ID});
@@ -486,6 +514,7 @@ async function finalizarJornada(){
     return;
   }
   try{
+    await salvarLojasPendentes();
     const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos});
     if(r.ok){
       toast('Jornada finalizada!');

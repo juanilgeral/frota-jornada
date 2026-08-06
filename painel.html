@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#0f1620; --card:#16202c; --card2:#1c2836; --line:#2a3746;
-    --text:#e8edf3; --muted:#8fa1b3; --amber:#f2a93b; --green:#3fbb78;
+    --text:#e8edf3; --muted:#b7c4d1; --amber:#f2a93b; --green:#3fbb78;
     --blue:#4f9ce8; --purple:#b18ef0; --red:#e5615f;
   }
   *{box-sizing:border-box;}
@@ -114,6 +114,12 @@ function hojeISO(){
   const d = new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+function formatarDataBR(iso){
+  if(!iso) return '—';
+  const p = String(iso).split('-');
+  if(p.length !== 3) return iso;
+  return `${p[2]}/${p[1]}/${p[0]}`;
+}
 $('#fData').value = hojeISO();
 
 async function apiGet(params){
@@ -202,8 +208,8 @@ function abrirDetalhe(id){
       <div class="line">Motorista<b>${d.Motorista || '—'}</b></div>
       <div class="line">Operação<b>${d.Operacao || '—'}</b></div>
       <div class="line">Destino<b>${d.Destino || '—'}</b></div>
-      <div class="line">Data<b>${d.Data || '—'}</b></div>
-      <div class="line">Data carregamento<b>${d.DataCarregamento || '—'}</b></div>
+      <div class="line">Data<b>${formatarDataBR(d.Data)}</b></div>
+      <div class="line">Data carregamento<b>${formatarDataBR(d.DataCarregamento)}</b></div>
       <div class="line">Início do ponto<b>${d.HoraInicioPonto || '—'}</b></div>
       <div class="line">Saída programada<b>${d.HoraProgramadaSaida || '—'}</b></div>
       <div class="line">Km saída<b>${d.KmSaida || '—'}</b></div>
