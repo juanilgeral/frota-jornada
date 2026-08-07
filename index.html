@@ -53,10 +53,11 @@
   input::placeholder{color:#7c8b9c;opacity:1;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
-  .opgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px;}
+  .opgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;}
   .opbtn{
-    padding:12px 4px;text-align:center;border-radius:10px;border:1px solid var(--line);
-    background:var(--card2);color:var(--muted);font-weight:700;font-size:14px;cursor:pointer;
+    padding:10px 4px;text-align:center;border-radius:10px;border:1px solid var(--line);
+    background:var(--card2);color:var(--muted);font-weight:700;font-size:12.5px;cursor:pointer;
+    line-height:1.25;word-break:break-word;
   }
   .opbtn.active{background:var(--amber);color:#1a1204;border-color:var(--amber);}
   button.primary{
@@ -194,14 +195,9 @@ async function init(){
     try{
       const l = await apiGet({action:'getLancamento', id: savedId});
       if(l && l.ID){
-        if(l.Status === 'Concluído'){
-          // jornada já encerrada — limpa e deixa pronto pra um lançamento novo
-          localStorage.removeItem('frota_jornada_id');
-        } else {
-          LANC = l;
-          renderAndamento();
-          return;
-        }
+        LANC = l;
+        renderAndamento();
+        return;
       }
     }catch(e){}
   }
@@ -211,18 +207,17 @@ async function init(){
 /* ======================= TELA 1: INÍCIO DO DIA ======================= */
 function renderInicio(){
   $('#statusLine').textContent = 'Preencha os dados de início do dia';
-  const ops = ['LS','TL','HT','CV'];
+  const ops = ['LS','TL','HT','CV','GB','CD','MANUTENÇÃO','BASE'];
   app.innerHTML = `
     <div class="card">
       <h2><span class="n">1</span> Início da jornada</h2>
       <label>Nome de guerra do motorista</label>
       <input type="text" id="fMotorista" placeholder="Ex.: Bahia, Paulista..." value="${localStorage.getItem('frota_jornada_nome') || ''}">
 
-      <div class="row2">
-        <div><label>Data</label><input type="date" id="fData" value="${hojeISO()}"></div>
-        <div><label>Hora início do ponto</label><input type="time" id="fHoraInicio" value="${agoraHHMM()}"></div>
-      </div>
-      <label>Hora programada de saída</label>
+      <label>Data</label>
+      <input type="date" id="fData" value="${hojeISO()}">
+
+      <label>Hora de saída do veículo:</label>
       <input type="time" id="fHoraProgSaida">
 
       <label>Operação</label>
@@ -234,11 +229,8 @@ function renderInicio(){
       <select id="fPlaca"><option value="">Selecione a placa</option></select>
       <div class="placa-hint">Formato Mercosul ou nacional — lista vem do cadastro de frota.</div>
 
-      <label>Destino</label>
-      <input type="text" id="fDestino" placeholder="Ex.: Zona Oeste / Loja 042...">
-
-      <label>Data que foi carregado</label>
-      <input type="date" id="fDataCarregado" value="${hojeISO()}">
+      <label>Destino e Nº da Loja:</label>
+      <input type="text" id="fDestino" placeholder="Ex.: Zona Oeste — Loja 042">
 
       <label>Km de saída</label>
       <input type="number" inputmode="numeric" id="fKmSaida" placeholder="Ex.: 154320">
@@ -283,16 +275,16 @@ function renderInicio(){
     const dados = {
       Motorista: $('#fMotorista').value.trim(),
       Data: $('#fData').value,
-      HoraInicioPonto: $('#fHoraInicio').value,
+      HoraInicioPonto: agoraHHMM(), // motorista raramente sabe a hora exata do ponto — usa o momento do lançamento
       HoraProgramadaSaida: $('#fHoraProgSaida').value,
       Operacao: opSelecionada,
       Placa: $('#fPlaca').value,
       Destino: $('#fDestino').value,
-      DataCarregamento: $('#fDataCarregado').value,
+      DataCarregamento: $('#fData').value, // mesma data da viagem, já que o motorista nem sempre sabe quando foi carregado
       KmSaida: $('#fKmSaida').value
     };
-    if(!dados.Motorista || !dados.Data || !dados.HoraInicioPonto || !dados.Operacao || !dados.Placa || !dados.KmSaida){
-      toast('Preencha nome do motorista, data, hora, operação, placa e km de saída.', true);
+    if(!dados.Motorista || !dados.Data || !dados.Operacao || !dados.Placa || !dados.KmSaida){
+      toast('Preencha nome do motorista, data, operação, placa e km de saída.', true);
       return;
     }
     $('#btnIniciar').disabled = true;
@@ -326,6 +318,43 @@ function statusPill(status){
   };
   const [cls,label] = map[status] || ['andamento', status || '—'];
   return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function renderConcluido(){
+  $('#statusLine').innerHTML = `${LANC.Motorista ? LANC.Motorista + ' · ' : ''}${LANC.Operacao} · ${LANC.Placa} · ${statusPill('Concluído')}`;
+
+  const paradas = LANC.Paradas || [];
+  app.innerHTML = `
+    <div class="card" style="border-color:var(--green)">
+      <h2 style="color:var(--green)">✓ Viagem concluída</h2>
+      <p style="color:var(--muted);font-size:13.5px;margin:0">
+        Esse lançamento já foi fechado e não pode mais ser editado por aqui.
+        Se precisar rodar de novo com o mesmo caminhão (2ª viagem, por exemplo),
+        inicie um lançamento novo abaixo — ele entra como uma linha independente
+        na planilha, sem mexer no que já foi registrado.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">✓</span> Resumo (somente leitura)</h2>
+      <div class="summary-line"><span>Motorista</span><b>${LANC.Motorista || '—'}</b></div>
+      <div class="summary-line"><span>Data</span><b>${formatarDataBR(LANC.Data)}</b></div>
+      <div class="summary-line"><span>Destino</span><b>${LANC.Destino || '—'}</b></div>
+      <div class="summary-line"><span>Km saída → chegada</span><b>${LANC.KmSaida||'—'} → ${LANC.KmChegada||'—'}</b></div>
+      ${LANC.TotalKm ? `<div class="summary-line"><span>Total Km</span><b>${LANC.TotalKm}</b></div>` : ''}
+      ${LANC.TotalHorasMotorista ? `<div class="summary-line"><span>Total horas motorista</span><b>${LANC.TotalHorasMotorista}</b></div>` : ''}
+      ${LANC.TotalHorasLojas ? `<div class="summary-line"><span>Total horas nas lojas</span><b>${LANC.TotalHorasLojas}</b></div>` : ''}
+      ${paradas.map(p => `<div class="summary-line"><span>Loja ${p.NumeroLoja}</span><b>${p.HoraChegada||'—'} → ${p.HoraSaida||'—'}</b></div>`).join('')}
+    </div>
+
+    <button class="primary" id="btnNovaViagem">Iniciar nova viagem</button>
+  `;
+
+  $('#btnNovaViagem').onclick = () => {
+    localStorage.removeItem('frota_jornada_id');
+    LANC = null;
+    renderInicio();
+  };
 }
 
 function renderBloqueado(){
@@ -366,6 +395,10 @@ function renderBloqueado(){
 }
 
 function renderAndamento(){
+  if(LANC.Status === 'Concluído'){
+    renderConcluido();
+    return;
+  }
   const bloqueado = horasDesdeUltimaAtualizacao(LANC.UltimaAtualizacao) > HORAS_LIMITE_SEM_ATUALIZACAO;
   if(bloqueado){
     renderBloqueado();
@@ -522,7 +555,14 @@ async function autoSalvarRetorno(){
     const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos});
     if(r.ok){
       if(status) status.textContent = 'Salvo ✓';
-      Object.assign(LANC, campos);
+      // km de chegada preenchido = servidor já fecha a viagem sozinho;
+      // busca de novo pra saber o status real e travar a tela na hora, se for o caso
+      if(campos.KmChegada){
+        LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+        renderAndamento();
+      }else{
+        Object.assign(LANC, campos);
+      }
     }else{
       if(status) status.textContent = 'Erro ao salvar!';
       toast(r.erro || 'Erro ao salvar', true);
