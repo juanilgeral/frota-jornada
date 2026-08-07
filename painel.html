@@ -191,7 +191,7 @@ function render(){
         </div>
         <div class="line"><span>Saída programada</span><b>${d.HoraProgramadaSaida || '—'}</b></div>
         <div class="line"><span>Situação</span><b>${situacao}</b></div>
-        ${d.TotalHorasMotorista ? `<div class="line"><span>Horas motorista</span><b>${d.TotalHorasMotorista}</b></div>` : ''}
+        ${d.TotalHorasViagem ? `<div class="line"><span>Horas da viagem</span><b>${d.TotalHorasViagem}</b></div>` : ''}
         ${d.TotalKm ? `<div class="line"><span>Km rodados</span><b>${d.TotalKm}</b></div>` : ''}
         <div class="foot">Atualizado ${d.UltimaAtualizacao || '—'}</div>
       </div>
@@ -212,14 +212,12 @@ function abrirDetalhe(id){
       <div class="line">Operação<b>${d.Operacao || '—'}</b></div>
       <div class="line">Destino<b>${d.Destino || '—'}</b></div>
       <div class="line">Data<b>${formatarDataBR(d.Data)}</b></div>
-      <div class="line">Data carregamento<b>${formatarDataBR(d.DataCarregamento)}</b></div>
-      <div class="line">Início do ponto<b>${d.HoraInicioPonto || '—'}</b></div>
       <div class="line">Saída programada<b>${d.HoraProgramadaSaida || '—'}</b></div>
       <div class="line">Km saída<b>${d.KmSaida || '—'}</b></div>
       <div class="line">Km chegada<b>${d.KmChegada || '—'}</b></div>
       <div class="line">Total Km<b>${d.TotalKm || '—'}</b></div>
       <div class="line">Chegada no CD<b>${d.HoraChegadaCD || '—'}</b></div>
-      <div class="line">Total horas motorista<b>${d.TotalHorasMotorista || '—'}</b></div>
+      <div class="line">Total horas da viagem<b>${d.TotalHorasViagem || '—'}</b></div>
       <div class="line">Total horas nas lojas<b>${d.TotalHorasLojas || '—'}</b></div>
       <div class="line">Última atualização<b>${d.UltimaAtualizacao || '—'}</b></div>
     </div>

@@ -275,12 +275,10 @@ function renderInicio(){
     const dados = {
       Motorista: $('#fMotorista').value.trim(),
       Data: $('#fData').value,
-      HoraInicioPonto: agoraHHMM(), // motorista raramente sabe a hora exata do ponto — usa o momento do lançamento
       HoraProgramadaSaida: $('#fHoraProgSaida').value,
       Operacao: opSelecionada,
       Placa: $('#fPlaca').value,
       Destino: $('#fDestino').value,
-      DataCarregamento: $('#fData').value, // mesma data da viagem, já que o motorista nem sempre sabe quando foi carregado
       KmSaida: $('#fKmSaida').value
     };
     if(!dados.Motorista || !dados.Data || !dados.Operacao || !dados.Placa || !dados.KmSaida){
@@ -342,7 +340,7 @@ function renderConcluido(){
       <div class="summary-line"><span>Destino</span><b>${LANC.Destino || '—'}</b></div>
       <div class="summary-line"><span>Km saída → chegada</span><b>${LANC.KmSaida||'—'} → ${LANC.KmChegada||'—'}</b></div>
       ${LANC.TotalKm ? `<div class="summary-line"><span>Total Km</span><b>${LANC.TotalKm}</b></div>` : ''}
-      ${LANC.TotalHorasMotorista ? `<div class="summary-line"><span>Total horas motorista</span><b>${LANC.TotalHorasMotorista}</b></div>` : ''}
+      ${LANC.TotalHorasViagem ? `<div class="summary-line"><span>Total horas da viagem</span><b>${LANC.TotalHorasViagem}</b></div>` : ''}
       ${LANC.TotalHorasLojas ? `<div class="summary-line"><span>Total horas nas lojas</span><b>${LANC.TotalHorasLojas}</b></div>` : ''}
       ${paradas.map(p => `<div class="summary-line"><span>Loja ${p.NumeroLoja}</span><b>${p.HoraChegada||'—'} → ${p.HoraSaida||'—'}</b></div>`).join('')}
     </div>
@@ -415,7 +413,7 @@ function renderAndamento(){
       <div class="summary-line"><span>Destino</span><b>${LANC.Destino || '—'}</b></div>
       <div class="summary-line"><span>Km saída</span><b>${LANC.KmSaida || '—'}</b></div>
       ${LANC.TotalKm ? `<div class="summary-line"><span>Total Km</span><b>${LANC.TotalKm}</b></div>` : ''}
-      ${LANC.TotalHorasMotorista ? `<div class="summary-line"><span>Total horas motorista</span><b>${LANC.TotalHorasMotorista}</b></div>` : ''}
+      ${LANC.TotalHorasViagem ? `<div class="summary-line"><span>Total horas da viagem</span><b>${LANC.TotalHorasViagem}</b></div>` : ''}
       ${LANC.TotalHorasLojas ? `<div class="summary-line"><span>Total horas nas lojas</span><b>${LANC.TotalHorasLojas}</b></div>` : ''}
     </div>
   `;
