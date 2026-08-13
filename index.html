@@ -415,6 +415,9 @@ function renderAndamento(){
       ${LANC.TotalKm ? `<div class="summary-line"><span>Total Km</span><b>${LANC.TotalKm}</b></div>` : ''}
       ${LANC.TotalHorasViagem ? `<div class="summary-line"><span>Total horas da viagem</span><b>${LANC.TotalHorasViagem}</b></div>` : ''}
       ${LANC.TotalHorasLojas ? `<div class="summary-line"><span>Total horas nas lojas</span><b>${LANC.TotalHorasLojas}</b></div>` : ''}
+      <label style="margin-top:14px">Hora de saída do veículo${!LANC.HoraProgramadaSaida ? ' <span style="color:var(--red)">(faltando)</span>' : ''}</label>
+      <input type="time" id="fHoraSaidaVeiculo" value="${LANC.HoraProgramadaSaida || ''}">
+      <div class="placa-hint" id="status_horasaida">${LANC.HoraProgramadaSaida ? 'Salvo ✓' : 'Esqueceu de lançar — preencha aqui, salva sozinho ao sair do campo.'}</div>
     </div>
   `;
 
@@ -452,6 +455,7 @@ function renderAndamento(){
   });
   ligarAutoSaveLojas();
   ligarAutoSaveRetorno();
+  ligarAutoSaveHoraSaida();
   $('#btnAddLoja').onclick = adicionarLoja;
   $('#btnFinalizar').onclick = finalizarJornada;
   $('#btnNovo').onclick = () => {
@@ -571,6 +575,32 @@ async function autoSalvarRetorno(){
   }
 }
 
+function ligarAutoSaveHoraSaida(){
+  const el = document.getElementById('fHoraSaidaVeiculo');
+  if(el) el.addEventListener('change', autoSalvarHoraSaida);
+}
+
+async function autoSalvarHoraSaida(){
+  const campos = { HoraProgramadaSaida: $('#fHoraSaidaVeiculo').value };
+  const status = document.getElementById('status_horasaida');
+  const el = $('#fHoraSaidaVeiculo');
+  if(status) status.textContent = 'Salvando...';
+  try{
+    const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos});
+    if(r.ok){
+      LANC.HoraProgramadaSaida = campos.HoraProgramadaSaida;
+      if(status) status.textContent = 'Salvo ✓';
+      if(el) el.style.borderColor = 'var(--line)';
+    }else{
+      if(status) status.textContent = 'Erro ao salvar!';
+      toast(r.erro || 'Erro ao salvar', true);
+    }
+  }catch(e){
+    if(status) status.textContent = 'Falha de conexão — tente de novo';
+    toast('Falha de conexão', true);
+  }
+}
+
 async function salvarLoja(paradaId){
   const campos = camposDaLoja(paradaId);
   try{
@@ -623,16 +653,46 @@ async function adicionarLoja(){
   }catch(e){ toast('Falha de conexão', true); }
 }
 
+// Verifica se ficou algo essencial faltando (ex.: motorista esqueceu de
+// lançar a hora de saída do veículo lá no início) antes de permitir finalizar.
+// Retorna a lista de campos faltantes, na ordem em que aparecem na tela.
+function camposFaltantesParaFinalizar(){
+  const horaSaidaVeiculo = $('#fHoraSaidaVeiculo') ? $('#fHoraSaidaVeiculo').value : LANC.HoraProgramadaSaida;
+  const horaChegadaCD = $('#fHoraCD').value;
+  const kmChegada = $('#fKmChegada').value;
+
+  const faltando = [];
+  if(!horaSaidaVeiculo) faltando.push({ id:'fHoraSaidaVeiculo', label:'Hora de saída do veículo' });
+  if(!horaChegadaCD) faltando.push({ id:'fHoraCD', label:'Hora de chegada no CD' });
+  if(!kmChegada) faltando.push({ id:'fKmChegada', label:'Km de chegada' });
+  return faltando;
+}
+
+function sinalizarCampoFaltante(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  el.focus();
+  el.style.borderColor = 'var(--red)';
+  const limpar = () => { el.style.borderColor = 'var(--line)'; el.removeEventListener('input', limpar); el.removeEventListener('change', limpar); };
+  el.addEventListener('input', limpar);
+  el.addEventListener('change', limpar);
+}
+
 async function finalizarJornada(){
+  const faltando = camposFaltantesParaFinalizar();
+  if(faltando.length > 0){
+    toast('Antes de finalizar, informe: ' + faltando.map(f=>f.label).join(', '), true);
+    sinalizarCampoFaltante(faltando[0].id);
+    return;
+  }
+
   const campos = {
+    HoraProgramadaSaida: $('#fHoraSaidaVeiculo').value,
     HoraChegadaCD: $('#fHoraCD').value,
     DataChegadaMotorista: $('#fDataChegada').value,
     KmChegada: $('#fKmChegada').value
   };
-  if(!campos.HoraChegadaCD || !campos.KmChegada){
-    toast('Informe hora de chegada no CD e km de chegada.', true);
-    return;
-  }
   try{
     await salvarLojasPendentes();
     const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos});
