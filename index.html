@@ -476,7 +476,7 @@ function renderAndamento(){
   if(mostrarPrompt){
     html += `
       <div class="loja-block" style="text-align:center">
-        <p style="margin:0 0 10px;font-size:14px">Tem uma ${numeroParaPrompt + 1}ª loja?</p>
+        <p style="margin:0 0 10px;font-size:14px">Tem uma ${Number(numeroParaPrompt) + 1}ª loja?</p>
         <div style="display:flex;gap:10px">
           <button class="secondary" id="btnLojaSim" style="flex:1">Sim</button>
           <button class="secondary" id="btnLojaNao" style="flex:1">Não</button>
@@ -485,19 +485,32 @@ function renderAndamento(){
     `;
   }
   html += `</div>`;
-  html += `
-    <div class="card">
-      <h2><span class="n">3</span> Retorno ao CD</h2>
-      <label>Hora de chegada do veículo no CD</label>
-      <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || ''}">
-      <div class="row2">
-        <div><label>Data chegada do motorista</label><input type="date" id="fDataChegada" value="${LANC.DataChegadaMotorista || LANC.Data}"></div>
-        <div><label>Km de chegada</label><input type="number" inputmode="numeric" id="fKmChegada" value="${LANC.KmChegada || ''}"></div>
+
+  // só libera depois que o motorista responder "Não" pra próxima loja —
+  // enquanto isso (preenchendo a atual ou decidindo se abre outra), fica travado
+  const retornoLiberado = !!localStorage.getItem('frota_loja_fim_' + LANC.ID);
+  if(retornoLiberado){
+    html += `
+      <div class="card">
+        <h2><span class="n">3</span> Retorno ao CD</h2>
+        <label>Hora de chegada do veículo no CD</label>
+        <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || ''}">
+        <div class="row2">
+          <div><label>Data chegada do motorista</label><input type="date" id="fDataChegada" value="${LANC.DataChegadaMotorista || LANC.Data}"></div>
+          <div><label>Km de chegada</label><input type="number" inputmode="numeric" id="fKmChegada" value="${LANC.KmChegada || ''}"></div>
+        </div>
+        <button class="primary" id="btnFinalizar">Salvar chegada / finalizar</button>
+        <div class="placa-hint" id="status_retorno">Cada campo salva sozinho ao sair dele.</div>
       </div>
-      <button class="primary" id="btnFinalizar">Salvar chegada / finalizar</button>
-      <div class="placa-hint" id="status_retorno">Cada campo salva sozinho ao sair dele.</div>
-    </div>
-  `;
+    `;
+  }else{
+    html += `
+      <div class="card" style="opacity:.55">
+        <h2><span class="n">3</span> Retorno ao CD</h2>
+        <p class="placa-hint" style="margin:0">Termine de preencher as lojas e responda "Não" à pergunta de próxima loja pra liberar essa etapa.</p>
+      </div>
+    `;
+  }
 
   html += `<div class="link-reset" id="btnNovo">Encerrar e iniciar novo lançamento</div>`;
 
@@ -510,7 +523,7 @@ function renderAndamento(){
   if($('#btnLojaNao')) $('#btnLojaNao').onclick = naoTemProximaLoja;
   ligarAutoSaveRetorno();
   ligarAutoSaveHoraSaida();
-  $('#btnFinalizar').onclick = finalizarJornada;
+  if($('#btnFinalizar')) $('#btnFinalizar').onclick = finalizarJornada;
   $('#btnNovo').onclick = () => {
     if(confirm('Isso vai limpar o lançamento atual deste aparelho (os dados continuam salvos na planilha). Confirmar?')){
       localStorage.removeItem('frota_jornada_id');
