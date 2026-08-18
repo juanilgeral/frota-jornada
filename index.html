@@ -454,7 +454,9 @@ function renderAndamento(){
   // Bloco das lojas — libera um campo por vez, na sequência, e só pergunta
   // se tem próxima loja depois que a atual estiver 100% preenchida.
   const paradas = LANC.Paradas || [];
-  html += `<div class="card"><h2><span class="n">2</span> Lojas de entrega</h2>`;
+  const numeroLojaAtual = paradas.length > 0 ? Number(paradas[paradas.length - 1].NumeroLoja) : 1;
+  const tituloLoja = `${numeroLojaAtual}ª Loja de entrega`;
+  html += `<div class="card"><h2><span class="n">✓</span> ${tituloLoja}</h2>`;
   let mostrarPrompt = false;
   let numeroParaPrompt = 0;
   paradas.forEach((p, idx) => {
