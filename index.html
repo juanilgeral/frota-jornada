@@ -244,8 +244,8 @@ function renderInicio(){
       <label>Nome de guerra do motorista</label>
       <input type="text" id="fMotorista" placeholder="Ex.: Bahia, Paulista..." value="${localStorage.getItem('frota_jornada_nome') || ''}">
 
-      <label>Data</label>
-      <input type="date" id="fData" value="${hojeISO()}">
+      <label>Data (saída — sempre hoje)</label>
+      <div class="total" style="margin:0"><span>Data da jornada</span><b>${formatarDataBR(hojeISO())}</b></div>
 
       <label>Hora de saída do veículo:</label>
       <input type="time" id="fHoraProgSaida">
@@ -304,7 +304,7 @@ function renderInicio(){
   $('#btnIniciar').onclick = async () => {
     const dados = {
       Motorista: $('#fMotorista').value.trim(),
-      Data: $('#fData').value,
+      Data: hojeISO(), // saída é sempre no dia em que o lançamento é criado
       HoraProgramadaSaida: $('#fHoraProgSaida').value,
       Operacao: opSelecionada,
       Placa: $('#fPlaca').value,
