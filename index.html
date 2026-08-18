@@ -501,7 +501,7 @@ function renderAndamento(){
         <label>Hora de chegada do veículo no CD</label>
         <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || ''}">
         <div class="row2">
-          <div><label>Data chegada do motorista</label><input type="date" id="fDataChegada" value="${LANC.DataChegadaMotorista || LANC.Data}"></div>
+          <div><label>Data chegada do motorista</label><input type="date" id="fDataChegada" value="${LANC.DataChegadaMotorista || hojeISO()}"></div>
           <div><label>Km de chegada</label><input type="number" inputmode="numeric" id="fKmChegada" value="${LANC.KmChegada || ''}"></div>
         </div>
         <button class="primary" id="btnFinalizar">Salvar chegada / finalizar</button>
@@ -734,10 +734,16 @@ async function finalizarJornada(){
     return;
   }
 
+  // Pega a data do campo ou usa a data de hoje se estiver vazio
+  let dataChegada = $('#fDataChegada').value;
+  if (!dataChegada) {
+    dataChegada = hojeISO();
+  }
+
   const campos = {
     HoraProgramadaSaida: $('#fHoraSaidaVeiculo').value,
     HoraChegadaCD: $('#fHoraCD').value,
-    DataChegadaMotorista: $('#fDataChegada').value,
+    DataChegadaMotorista: dataChegada,
     KmChegada: $('#fKmChegada').value
   };
   try{
