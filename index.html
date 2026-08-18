@@ -198,10 +198,40 @@ async function init(){
         LANC = l;
         renderAndamento();
         return;
+      }else if(l && l.erro){
+        // resposta válida do servidor confirmando que esse lançamento não existe mais
+        localStorage.removeItem('frota_jornada_id');
+      }else{
+        // resposta inesperada — trata como falha de conexão, NÃO deixa cair pra tela de início
+        renderFalhaCarregamento(savedId);
+        return;
       }
-    }catch(e){}
+    }catch(e){
+      // falha de rede/servidor — idem, não deixa criar lançamento novo por engano
+      renderFalhaCarregamento(savedId);
+      return;
+    }
   }
   renderInicio();
+}
+
+function renderFalhaCarregamento(savedId){
+  $('#statusLine').textContent = 'Não consegui carregar seu lançamento em aberto';
+  app.innerHTML = `
+    <div class="card" style="border-color:var(--red)">
+      <h2 style="color:var(--red)">⚠ Falha ao carregar</h2>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 6px">
+        Você tem um lançamento em aberto salvo neste aparelho, mas não consegui
+        buscar os dados dele agora (sem internet ou o servidor demorou a responder).
+      </p>
+      <p style="color:var(--muted);font-size:13.5px">
+        Tenta de novo antes de iniciar qualquer coisa — pra não duplicar o
+        lançamento nem perder a data certa da viagem.
+      </p>
+    </div>
+    <button class="primary" id="btnTentarDeNovo">Tentar carregar de novo</button>
+  `;
+  $('#btnTentarDeNovo').onclick = () => init();
 }
 
 /* ======================= TELA 1: INÍCIO DO DIA ======================= */
@@ -421,17 +451,40 @@ function renderAndamento(){
     </div>
   `;
 
-  // Bloco das lojas
+  // Bloco das lojas — libera um campo por vez, na sequência, e só pergunta
+  // se tem próxima loja depois que a atual estiver 100% preenchida.
   const paradas = LANC.Paradas || [];
   html += `<div class="card"><h2><span class="n">2</span> Lojas de entrega</h2>`;
+  let mostrarPrompt = false;
+  let numeroParaPrompt = 0;
   paradas.forEach((p, idx) => {
-    html += renderLojaBlock(p, idx === paradas.length - 1);
+    const ehUltima = idx === paradas.length - 1;
+    const completa = !proximoCampoLoja(p);
+    if(!ehUltima || completa){
+      html += renderLojaCompleta(p);
+    }else{
+      html += renderLojaAtiva(p);
+    }
+    if(ehUltima && completa){
+      const jaRespondeu = localStorage.getItem(`frota_loja_fim_${LANC.ID}`);
+      if(!jaRespondeu){
+        mostrarPrompt = true;
+        numeroParaPrompt = p.NumeroLoja;
+      }
+    }
   });
-  html += `<button class="ghost" id="btnAddLoja" style="margin-top:14px;width:100%">+ Adicionar próxima loja (carga compartilhada)</button>`;
+  if(mostrarPrompt){
+    html += `
+      <div class="loja-block" style="text-align:center">
+        <p style="margin:0 0 10px;font-size:14px">Tem uma ${numeroParaPrompt + 1}ª loja?</p>
+        <div style="display:flex;gap:10px">
+          <button class="secondary" id="btnLojaSim" style="flex:1">Sim</button>
+          <button class="secondary" id="btnLojaNao" style="flex:1">Não</button>
+        </div>
+      </div>
+    `;
+  }
   html += `</div>`;
-
-  // Bloco de retorno ao CD
-  const lojasCompletas = paradas.length > 0 && paradas.every(p => p.HoraSaida);
   html += `
     <div class="card">
       <h2><span class="n">3</span> Retorno ao CD</h2>
@@ -450,13 +503,13 @@ function renderAndamento(){
 
   app.innerHTML = html;
 
-  document.querySelectorAll('.btnSalvarLoja').forEach(btn=>{
-    btn.onclick = () => salvarLoja(btn.dataset.id);
+  document.querySelectorAll('[data-parada][data-campo]').forEach(el=>{
+    el.addEventListener('change', () => salvarCampoSequencial(el.dataset.parada, el.dataset.campo));
   });
-  ligarAutoSaveLojas();
+  if($('#btnLojaSim')) $('#btnLojaSim').onclick = criarProximaLoja;
+  if($('#btnLojaNao')) $('#btnLojaNao').onclick = naoTemProximaLoja;
   ligarAutoSaveRetorno();
   ligarAutoSaveHoraSaida();
-  $('#btnAddLoja').onclick = adicionarLoja;
   $('#btnFinalizar').onclick = finalizarJornada;
   $('#btnNovo').onclick = () => {
     if(confirm('Isso vai limpar o lançamento atual deste aparelho (os dados continuam salvos na planilha). Confirmar?')){
@@ -467,58 +520,67 @@ function renderAndamento(){
   };
 }
 
-function renderLojaBlock(p, isUltima){
+const CAMPOS_LOJA_ORDEM = [
+  ['HoraChegada', 'chegada', 'Chegada'],
+  ['HoraAberturaBau', 'abertura', 'Abertura do baú'],
+  ['HoraFechamentoBau', 'fechamento', 'Fechamento do baú'],
+  ['HoraSaida', 'saida', 'Saída']
+];
+
+function proximoCampoLoja(p){
+  return CAMPOS_LOJA_ORDEM.find(([campo]) => !p[campo]);
+}
+
+function renderLojaCompleta(p){
   return `
     <div class="loja-block">
       <div class="loja-title">
-        <span>Loja ${p.NumeroLoja}</span>
-        <span class="badge-ok" id="total_${p.ID}">${p.TotalLoja ? 'Total: '+p.TotalLoja : ''}</span>
+        <span>Loja ${p.NumeroLoja} ✓</span>
+        <span class="badge-ok">${p.TotalLoja ? 'Total: '+p.TotalLoja : ''}</span>
       </div>
       <div class="row2">
-        <div><label>Chegada</label><input type="time" id="p_${p.ID}_chegada" value="${p.HoraChegada||''}"></div>
-        <div><label>Abertura do baú</label><input type="time" id="p_${p.ID}_abertura" value="${p.HoraAberturaBau||''}"></div>
+        <div class="summary-line"><span>Chegada</span><b>${p.HoraChegada||'—'}</b></div>
+        <div class="summary-line"><span>Abertura baú</span><b>${p.HoraAberturaBau||'—'}</b></div>
       </div>
       <div class="row2">
-        <div><label>Fechamento do baú</label><input type="time" id="p_${p.ID}_fechamento" value="${p.HoraFechamentoBau||''}"></div>
-        <div><label>Saída</label><input type="time" id="p_${p.ID}_saida" value="${p.HoraSaida||''}"></div>
+        <div class="summary-line"><span>Fechamento baú</span><b>${p.HoraFechamentoBau||'—'}</b></div>
+        <div class="summary-line"><span>Saída</span><b>${p.HoraSaida||'—'}</b></div>
       </div>
-      <div class="savebar">
-        <button class="secondary btnSalvarLoja" data-id="${p.ID}">Salvar loja ${p.NumeroLoja}</button>
-      </div>
-      <div class="placa-hint" id="status_${p.ID}">Cada campo salva sozinho ao sair dele.</div>
     </div>
   `;
 }
 
-// Salva o campo assim que o motorista sai dele (evento "change") — não espera
-// clique em nenhum botão, então nada se perde se ele trocar de tela na hora.
-function ligarAutoSaveLojas(){
-  const paradas = LANC.Paradas || [];
-  paradas.forEach(p => {
-    ['chegada','abertura','fechamento','saida'].forEach(campo => {
-      const el = document.getElementById(`p_${p.ID}_${campo}`);
-      if(el) el.addEventListener('change', () => autoSalvarLoja(p.ID));
-    });
+function renderLojaAtiva(p){
+  const proximo = proximoCampoLoja(p);
+  let html = `<div class="loja-block"><div class="loja-title"><span>Loja ${p.NumeroLoja}</span></div>`;
+  CAMPOS_LOJA_ORDEM.forEach(([campo, idSuf, label]) => {
+    if(p[campo]){
+      html += `<div class="summary-line"><span>${label}</span><b>${p[campo]}</b></div>`;
+    }
   });
+  if(proximo){
+    const [campo, idSuf, label] = proximo;
+    html += `<label>${label}</label><input type="time" id="p_${p.ID}_${idSuf}" data-parada="${p.ID}" data-campo="${campo}">`;
+    html += `<div class="placa-hint" id="status_${p.ID}">Preenche esse campo — o próximo libera sozinho.</div>`;
+  }
+  html += `</div>`;
+  return html;
 }
 
-async function autoSalvarLoja(paradaId){
-  const campos = camposDaLoja(paradaId);
+// Salva UM campo por vez, assim que o motorista sai dele, e recarrega a tela
+// pra liberar o próximo campo da sequência (chegada → abertura → fechamento → saída).
+async function salvarCampoSequencial(paradaId, campo){
+  const idSuf = { HoraChegada:'chegada', HoraAberturaBau:'abertura', HoraFechamentoBau:'fechamento', HoraSaida:'saida' }[campo];
+  const el = document.getElementById(`p_${paradaId}_${idSuf}`);
+  const valor = el ? el.value : '';
+  if(!valor) return;
   const status = document.getElementById(`status_${paradaId}`);
   if(status) status.textContent = 'Salvando...';
   try{
-    const r = await apiPost({action:'atualizarParada', id: paradaId, campos});
+    const r = await apiPost({action:'atualizarParada', id: paradaId, campos: {[campo]: valor}});
     if(r.ok){
-      if(status) status.textContent = 'Salvo ✓';
-      // atualiza o total na tela sem recarregar tudo (não atrapalha quem ainda tá digitando)
-      const badge = document.getElementById(`total_${paradaId}`);
-      if(badge && campos.HoraChegada && campos.HoraSaida){
-        const total = calcularTotalLocal(campos.HoraChegada, campos.HoraSaida);
-        if(total) badge.textContent = 'Total: ' + total;
-      }
-      // mantém o LANC em memória sincronizado com o que já foi salvo
-      const p = (LANC.Paradas || []).find(x => x.ID === paradaId);
-      if(p) Object.assign(p, campos);
+      LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+      renderAndamento();
     }else{
       if(status) status.textContent = 'Erro ao salvar!';
       toast(r.erro || 'Erro ao salvar', true);
@@ -527,6 +589,25 @@ async function autoSalvarLoja(paradaId){
     if(status) status.textContent = 'Falha de conexão — tente de novo';
     toast('Falha de conexão', true);
   }
+}
+
+async function criarProximaLoja(){
+  const btn = $('#btnLojaSim');
+  if(btn){ btn.disabled = true; btn.textContent = 'Abrindo...'; }
+  try{
+    const paradas = LANC.Paradas || [];
+    const proximoNumero = paradas.length + 1;
+    const r = await apiPost({action:'criarParada', lancamentoId: LANC.ID, numeroLoja: proximoNumero});
+    if(r.ok){
+      LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+      renderAndamento();
+    }
+  }catch(e){ toast('Falha de conexão', true); }
+}
+
+function naoTemProximaLoja(){
+  localStorage.setItem(`frota_loja_fim_${LANC.ID}`, '1');
+  renderAndamento();
 }
 
 function calcularTotalLocal(horaIni, horaFim){
@@ -601,58 +682,6 @@ async function autoSalvarHoraSaida(){
   }
 }
 
-async function salvarLoja(paradaId){
-  const campos = camposDaLoja(paradaId);
-  try{
-    const r = await apiPost({action:'atualizarParada', id: paradaId, campos});
-    if(r.ok){
-      toast('Loja atualizada');
-      LANC = await apiGet({action:'getLancamento', id: LANC.ID});
-      renderAndamento();
-    }else{
-      toast(r.erro || 'Erro ao salvar', true);
-    }
-  }catch(e){ toast('Falha de conexão', true); }
-}
-
-function camposDaLoja(paradaId){
-  return {
-    HoraChegada: $(`#p_${paradaId}_chegada`).value,
-    HoraAberturaBau: $(`#p_${paradaId}_abertura`).value,
-    HoraFechamentoBau: $(`#p_${paradaId}_fechamento`).value,
-    HoraSaida: $(`#p_${paradaId}_saida`).value
-  };
-}
-
-// Salva o que estiver preenchido em TODAS as lojas na tela antes de qualquer
-// ação que recarregue os dados — evita perder o que o motorista já digitou
-// mas ainda não tinha clicado em "Salvar loja".
-async function salvarLojasPendentes(){
-  const paradas = LANC.Paradas || [];
-  for(const p of paradas){
-    const el = document.getElementById(`p_${p.ID}_chegada`);
-    if(!el) continue;
-    const campos = camposDaLoja(p.ID);
-    await apiPost({action:'atualizarParada', id: p.ID, campos});
-  }
-}
-
-async function adicionarLoja(){
-  const btn = $('#btnAddLoja');
-  btn.disabled = true;
-  btn.textContent = 'Salvando...';
-  try{
-    await salvarLojasPendentes();
-    const paradas = LANC.Paradas || [];
-    const proximoNumero = paradas.length + 1;
-    const r = await apiPost({action:'criarParada', lancamentoId: LANC.ID, numeroLoja: proximoNumero});
-    if(r.ok){
-      LANC = await apiGet({action:'getLancamento', id: LANC.ID});
-      renderAndamento();
-    }
-  }catch(e){ toast('Falha de conexão', true); }
-}
-
 // Verifica se ficou algo essencial faltando (ex.: motorista esqueceu de
 // lançar a hora de saída do veículo lá no início) antes de permitir finalizar.
 // Retorna a lista de campos faltantes, na ordem em que aparecem na tela.
@@ -694,7 +723,6 @@ async function finalizarJornada(){
     KmChegada: $('#fKmChegada').value
   };
   try{
-    await salvarLojasPendentes();
     const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos});
     if(r.ok){
       toast('Jornada finalizada!');
