@@ -372,7 +372,7 @@ function renderConcluido(){
       ${LANC.TotalKm ? `<div class="summary-line"><span>Total Km</span><b>${LANC.TotalKm}</b></div>` : ''}
       ${LANC.TotalHorasViagem ? `<div class="summary-line"><span>Total horas da viagem</span><b>${LANC.TotalHorasViagem}</b></div>` : ''}
       ${LANC.TotalHorasLojas ? `<div class="summary-line"><span>Total horas nas lojas</span><b>${LANC.TotalHorasLojas}</b></div>` : ''}
-      ${paradas.map(p => `<div class="summary-line"><span>Loja ${p.NumeroLoja}</span><b>${p.HoraChegada||'—'} → ${p.HoraSaida||'—'}</b></div>`).join('')}
+      ${paradas.map((p, i) => `<div class="summary-line"><span>Loja ${i+1}</span><b>${p.HoraChegada||'—'} → ${p.HoraSaida||'—'}</b></div>`).join('')}
     </div>
 
     <button class="primary" id="btnNovaViagem">Iniciar nova viagem</button>
@@ -409,7 +409,7 @@ function renderBloqueado(){
       <div class="summary-line"><span>Destino</span><b>${LANC.Destino || '—'}</b></div>
       <div class="summary-line"><span>Km saída</span><b>${LANC.KmSaida || '—'}</b></div>
       <div class="summary-line"><span>Chegada CD</span><b>${LANC.HoraChegadaCD || '—'}</b></div>
-      ${paradas.map(p => `<div class="summary-line"><span>Loja ${p.NumeroLoja}</span><b>${p.HoraChegada||'—'} → ${p.HoraSaida||'—'}</b></div>`).join('')}
+      ${paradas.map((p, i) => `<div class="summary-line"><span>Loja ${i+1}</span><b>${p.HoraChegada||'—'} → ${p.HoraSaida||'—'}</b></div>`).join('')}
     </div>
 
     <button class="primary" id="btnNovoBloqueado">Iniciar novo lançamento (hoje)</button>
@@ -453,32 +453,35 @@ function renderAndamento(){
 
   // Bloco das lojas — libera um campo por vez, na sequência, e só pergunta
   // se tem próxima loja depois que a atual estiver 100% preenchida.
+  // Usa a posição na lista (idx+1) como número confiável da loja, em vez de
+  // confiar cegamente no campo NumeroLoja vindo da planilha.
   const paradas = LANC.Paradas || [];
-  const numeroLojaAtual = paradas.length > 0 ? Number(paradas[paradas.length - 1].NumeroLoja) : 1;
+  const numeroLojaAtual = paradas.length > 0 ? paradas.length : 1;
   const tituloLoja = `${numeroLojaAtual}ª Loja de entrega`;
   html += `<div class="card"><h2><span class="n">✓</span> ${tituloLoja}</h2>`;
   let mostrarPrompt = false;
   let numeroParaPrompt = 0;
   paradas.forEach((p, idx) => {
+    const numeroReal = idx + 1;
     const ehUltima = idx === paradas.length - 1;
     const completa = !proximoCampoLoja(p);
     if(!ehUltima || completa){
-      html += renderLojaCompleta(p);
+      html += renderLojaCompleta(p, numeroReal);
     }else{
-      html += renderLojaAtiva(p);
+      html += renderLojaAtiva(p, numeroReal);
     }
     if(ehUltima && completa){
       const jaRespondeu = localStorage.getItem(`frota_loja_fim_${LANC.ID}`);
       if(!jaRespondeu){
         mostrarPrompt = true;
-        numeroParaPrompt = p.NumeroLoja;
+        numeroParaPrompt = numeroReal;
       }
     }
   });
   if(mostrarPrompt){
     html += `
       <div class="loja-block" style="text-align:center">
-        <p style="margin:0 0 10px;font-size:14px">Tem uma ${Number(numeroParaPrompt) + 1}ª loja?</p>
+        <p style="margin:0 0 10px;font-size:14px">Tem uma ${numeroParaPrompt + 1}ª loja?</p>
         <div style="display:flex;gap:10px">
           <button class="secondary" id="btnLojaSim" style="flex:1">Sim</button>
           <button class="secondary" id="btnLojaNao" style="flex:1">Não</button>
@@ -546,11 +549,11 @@ function proximoCampoLoja(p){
   return CAMPOS_LOJA_ORDEM.find(([campo]) => !p[campo]);
 }
 
-function renderLojaCompleta(p){
+function renderLojaCompleta(p, numero){
   return `
     <div class="loja-block">
       <div class="loja-title">
-        <span>Loja ${p.NumeroLoja} ✓</span>
+        <span>Loja ${numero} ✓</span>
         <span class="badge-ok">${p.TotalLoja ? 'Total: '+p.TotalLoja : ''}</span>
       </div>
       <div class="row2">
@@ -565,9 +568,9 @@ function renderLojaCompleta(p){
   `;
 }
 
-function renderLojaAtiva(p){
+function renderLojaAtiva(p, numero){
   const proximo = proximoCampoLoja(p);
-  let html = `<div class="loja-block"><div class="loja-title"><span>Loja ${p.NumeroLoja}</span></div>`;
+  let html = `<div class="loja-block"><div class="loja-title"><span>Loja ${numero}</span></div>`;
   CAMPOS_LOJA_ORDEM.forEach(([campo, idSuf, label]) => {
     if(p[campo]){
       html += `<div class="summary-line"><span>${label}</span><b>${p[campo]}</b></div>`;
