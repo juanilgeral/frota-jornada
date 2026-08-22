@@ -134,6 +134,7 @@ const CONFIG = {
 
 /* ======================= ESTADO ======================= */
 let PLACAS = [];
+let MOTORISTAS = [];
 let LANC = null; // lançamento atual (objeto completo, vindo do backend)
 
 const $ = (sel) => document.querySelector(sel);
@@ -197,6 +198,9 @@ async function init(){
   try{
     PLACAS = await apiGet({action:'getPlacas'});
   }catch(e){ PLACAS = []; }
+  try{
+    MOTORISTAS = await apiGet({action:'getMotoristas'});
+  }catch(e){ MOTORISTAS = []; }
 
   const savedId = localStorage.getItem('frota_jornada_id');
   if(savedId){
@@ -250,7 +254,8 @@ function renderInicio(){
     <div class="card">
       <h2><span class="n">1</span> Início da jornada</h2>
       <label>Nome de guerra do motorista</label>
-      <input type="text" id="fMotorista" placeholder="Ex.: Bahia, Paulista..." value="${localStorage.getItem('frota_jornada_nome') || ''}">
+      <select id="fMotorista"></select>
+      <div class="placa-hint" id="motoristaHint">Carregando lista de motoristas ativos...</div>
 
       <label>Data (saída — sempre hoje)</label>
       <div class="total" style="margin:0"><span>Data da jornada</span><b>${formatarDataBR(hojeISO())}</b></div>
@@ -307,6 +312,23 @@ function renderInicio(){
         `</optgroup>`;
     });
     sel.innerHTML = html;
+  }
+
+  // Lista de motoristas ativos, vinda da planilha de RH — evita erro de
+  // digitação/apelido que quebrava o casamento de nomes no painel.
+  preencherMotoristas();
+  function preencherMotoristas(){
+    const sel = $('#fMotorista');
+    const hint = $('#motoristaHint');
+    if(MOTORISTAS.length === 0){
+      sel.innerHTML = '<option value="">Nenhum motorista ativo encontrado</option>';
+      if(hint) hint.textContent = 'Não consegui carregar a lista — avise a supervisão.';
+      return;
+    }
+    const salvo = localStorage.getItem('frota_jornada_nome') || '';
+    sel.innerHTML = '<option value="">Selecione seu nome</option>' +
+      MOTORISTAS.map(nome => `<option value="${nome}"${nome === salvo ? ' selected' : ''}>${nome}</option>`).join('');
+    if(hint) hint.textContent = 'Lista vem do cadastro de motoristas ativos.';
   }
 
   $('#btnIniciar').onclick = async () => {
@@ -446,7 +468,11 @@ function renderAndamento(){
   let html = `
     <div class="card">
       <h2><span class="n">✓</span> Resumo da jornada</h2>
-      <div class="summary-line"><span>Motorista</span><b>${LANC.Motorista || '—'}</b></div>
+      <div class="summary-line"><span>Motorista</span><b id="labelMotoristaAtual">${LANC.Motorista || '—'}</b> <span class="link-reset" style="display:inline;margin:0;font-size:11.5px" id="btnCorrigirNome">✏️ corrigir</span></div>
+      <div id="blocoCorrigirNome" class="hidden" style="margin:8px 0">
+        <select id="fMotoristaCorrigido">${MOTORISTAS.map(nome => `<option value="${nome}"${nome === LANC.Motorista ? ' selected' : ''}>${nome}</option>`).join('')}</select>
+        <button class="secondary" id="btnSalvarNomeCorrigido" style="margin-top:6px">Salvar nome</button>
+      </div>
       <div class="summary-line"><span>Data</span><b>${formatarDataBR(LANC.Data)}</b></div>
       <div class="summary-line"><span>Destino</span><b>${LANC.Destino || '—'}</b></div>
       <div class="summary-line"><span>Km saída</span><b>${LANC.KmSaida || '—'}</b></div>
@@ -537,6 +563,8 @@ function renderAndamento(){
   ligarAutoSaveRetorno();
   ligarAutoSaveHoraSaida();
   if($('#btnFinalizar')) $('#btnFinalizar').onclick = finalizarJornada;
+  if($('#btnCorrigirNome')) $('#btnCorrigirNome').onclick = () => $('#blocoCorrigirNome').classList.remove('hidden');
+  if($('#btnSalvarNomeCorrigido')) $('#btnSalvarNomeCorrigido').onclick = salvarNomeCorrigido;
   $('#btnNovo').onclick = () => {
     if(confirm('Isso vai limpar o lançamento atual deste aparelho (os dados continuam salvos na planilha). Confirmar?')){
       localStorage.removeItem('frota_jornada_id');
@@ -650,6 +678,31 @@ function ligarAutoSaveRetorno(){
     const el = document.getElementById(id);
     if(el) el.addEventListener('change', autoSalvarRetorno);
   });
+}
+
+async function salvarNomeCorrigido(){
+  const novoNome = $('#fMotoristaCorrigido').value;
+  if(!novoNome) return;
+  const btn = $('#btnSalvarNomeCorrigido');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+  try{
+    const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos: { Motorista: novoNome }});
+    if(r.ok){
+      localStorage.setItem('frota_jornada_nome', novoNome);
+      toast('Nome corrigido!');
+      LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+      renderAndamento();
+    }else{
+      toast(r.erro || 'Erro ao salvar', true);
+      btn.disabled = false;
+      btn.textContent = 'Salvar nome';
+    }
+  }catch(e){
+    toast('Falha de conexão', true);
+    btn.disabled = false;
+    btn.textContent = 'Salvar nome';
+  }
 }
 
 async function autoSalvarRetorno(){
