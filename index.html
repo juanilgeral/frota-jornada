@@ -50,11 +50,11 @@
     display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;
   }
   label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 5px;}
-  input,select{
+  input,select,textarea{
     width:100%;padding:12px 12px;border-radius:10px;border:1px solid var(--line);
     background:var(--card2);color:var(--text);font-size:15.5px;
   }
-  input:focus,select:focus{outline:2px solid var(--amber);border-color:var(--amber);}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--amber);border-color:var(--amber);}
   input::placeholder{color:#7c8b9c;opacity:1;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
@@ -65,6 +65,22 @@
     line-height:1.25;word-break:break-word;
   }
   .opbtn.active{background:var(--amber);color:#1a1204;border-color:var(--amber);}
+  .opbtn.custom{border-style:dashed;color:var(--amber);}
+  .op-selected-detail{font-size:11.5px;color:var(--amber);margin-top:6px;min-height:15px;}
+  #modal-outro{
+    display:none;position:fixed;inset:0;z-index:60;background:rgba(15,22,32,.88);
+    align-items:center;justify-content:center;padding:16px;
+  }
+  #modal-outro .modal-card{
+    width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.55);
+  }
+  #modal-outro h3{margin:0 0 8px;color:var(--amber);font-size:17px;}
+  #modal-outro p{margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.45;}
+  #outroDescricao{min-height:92px;resize:vertical;font-family:inherit;font-size:15px;}
+  .modal-actions{display:flex;gap:8px;margin-top:14px;}
+  .modal-actions button{flex:1;margin-top:0;}
+  .modal-error{color:#ffb3b0;font-size:12px;min-height:17px;margin-top:6px;}
   button.primary{
     width:100%;margin-top:16px;padding:14px;border:none;border-radius:12px;
     background:var(--amber);color:#1a1204;font-weight:800;font-size:15.5px;cursor:pointer;
@@ -124,6 +140,20 @@
 <div class="wrap" id="app"></div>
 
 <div class="toast" id="toast"></div>
+
+<div id="modal-outro" role="dialog" aria-modal="true" aria-labelledby="modal-outro-title">
+  <div class="modal-card">
+    <h3 id="modal-outro-title">Outra operação ou serviço</h3>
+    <p>Informe o nome da operação ou descreva o serviço que será realizado.</p>
+    <label for="outroDescricao">Operação ou serviço</label>
+    <textarea id="outroDescricao" maxlength="80" placeholder="Ex.: Apoio operacional — entrega emergencial"></textarea>
+    <div class="modal-error" id="outroErro" aria-live="polite"></div>
+    <div class="modal-actions">
+      <button class="secondary" id="btnCancelarOutro" type="button">Cancelar</button>
+      <button class="primary" id="btnConfirmarOutro" type="button">Usar esta descrição</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ======================= CONFIG ======================= */
@@ -249,7 +279,7 @@ function renderFalhaCarregamento(savedId){
 /* ======================= TELA 1: INÍCIO DO DIA ======================= */
 function renderInicio(){
   $('#statusLine').textContent = 'Preencha os dados de início do dia';
-  const ops = ['LS','TL','HT','CV','GB','CD','MANUTENÇÃO','BASE'];
+  const ops = ['LS','TL','HT','CV','OUTRO'];
   app.innerHTML = `
     <div class="card">
       <h2><span class="n">1</span> Início da jornada</h2>
@@ -265,8 +295,9 @@ function renderInicio(){
 
       <label>Operação</label>
       <div class="opgrid" id="opGrid">
-        ${ops.map(o=>`<div class="opbtn" data-op="${o}">${o}</div>`).join('')}
+        ${ops.map(o=>`<div class="opbtn${o === 'OUTRO' ? ' custom' : ''}" data-op="${o}">${o}</div>`).join('')}
       </div>
+      <div class="op-selected-detail" id="opSelecionadaDetalhe" aria-live="polite"></div>
 
       <label>Placa do veículo</label>
       <select id="fPlaca"><option value="">Selecione a placa</option></select>
@@ -283,13 +314,54 @@ function renderInicio(){
   `;
 
   let opSelecionada = '';
+  const opSelecionadaDetalhe = $('#opSelecionadaDetalhe');
+  const modalOutro = $('#modal-outro');
+  const outroDescricao = $('#outroDescricao');
+  const outroErro = $('#outroErro');
+
+  function fecharModalOutro(){
+    modalOutro.style.display = 'none';
+    outroErro.textContent = '';
+  }
+
+  function selecionarOperacao(valor){
+    const operacaoBase = valor.startsWith('OUTRO — ') ? 'OUTRO' : valor;
+    document.querySelectorAll('.opbtn').forEach(b=>b.classList.toggle('active', b.dataset.op === operacaoBase));
+    opSelecionada = valor;
+    opSelecionadaDetalhe.textContent = operacaoBase === 'OUTRO'
+      ? `Descrição: ${valor.startsWith('OUTRO — ') ? valor.substring(8) : 'pendente'}`
+      : '';
+  }
+
   document.querySelectorAll('.opbtn').forEach(btn=>{
     btn.onclick = ()=>{
-      document.querySelectorAll('.opbtn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      opSelecionada = btn.dataset.op;
+      if(btn.dataset.op === 'OUTRO'){
+        outroDescricao.value = opSelecionada.startsWith('OUTRO — ') ? opSelecionada.substring(8) : '';
+        outroErro.textContent = '';
+        modalOutro.style.display = 'flex';
+        setTimeout(()=>outroDescricao.focus(), 0);
+        return;
+      }
+      selecionarOperacao(btn.dataset.op);
     };
   });
+
+  $('#btnCancelarOutro').onclick = fecharModalOutro;
+  $('#btnConfirmarOutro').onclick = ()=>{
+    const descricao = outroDescricao.value.trim();
+    if(!descricao){
+      outroErro.textContent = 'Informe a operação ou o serviço para continuar.';
+      outroDescricao.focus();
+      return;
+    }
+    selecionarOperacao(`OUTRO — ${descricao}`);
+    fecharModalOutro();
+  };
+  modalOutro.onclick = (event)=>{ if(event.target === modalOutro) fecharModalOutro(); };
+  outroDescricao.onkeydown = (event)=>{
+    if(event.key === 'Escape') fecharModalOutro();
+    if((event.ctrlKey || event.metaKey) && event.key === 'Enter') $('#btnConfirmarOutro').click();
+  };
 
   // Operação (do dia) e Placa (do veículo) são independentes uma da outra —
   // a lista de placas mostra todo o cadastro, agrupada por OP só pra facilitar achar.

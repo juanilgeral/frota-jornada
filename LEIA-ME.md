@@ -78,8 +78,10 @@ O motorista preenche em etapas, e cada etapa já grava direto na planilha
 (não precisa preencher tudo de uma vez):
 
 1. **Início da jornada** — data, hora do ponto, hora programada de saída,
-   operação (LS/TL/HT/CV), placa (lista filtrada pela operação), destino,
-   data de carregamento e km de saída.
+   operação (LS/TL/HT/CV) ou **OUTRO**, placa (lista do cadastro de frota),
+   destino e km de saída. Ao escolher **OUTRO**, o motorista informa o nome da
+   operação ou descreve o serviço; esse texto é salvo no campo `Operacao` do
+   lançamento.
 2. **Lojas** — para cada loja: chegada, abertura do baú, fechamento do baú e saída.
    O total de tempo na loja é calculado sozinho. Se a carga for compartilhada,
    basta tocar em **"+ Adicionar próxima loja"** para lançar a 2ª, 3ª loja etc.,
@@ -105,8 +107,7 @@ sem precisar recarregar a página.
 
 ## Observações
 
-- Todos os dados ficam gravados diretamente na planilha do Google Sheets
-  (abas Lancamentos e Paradas) — dá pra abrir a planilha a qualquer momento
+- Todos os dados ficam gravados diretamente na planilha (abas Lancamentos e Paradas) — dá pra abrir a planilha a qualquer momento
   para conferir, exportar ou criar relatórios extras.
 - Não foi criado login neste primeiro modelo — se quiser um controle de acesso
   por motorista/usuário como o Frota Field já tem, dá pra integrar depois.
