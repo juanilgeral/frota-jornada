@@ -34,6 +34,12 @@
   .stat .num{font-size:22px;font-weight:800;}
   .stat .lbl{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+  .cards .divider{
+    grid-column:1/-1;display:flex;align-items:center;gap:10px;
+    margin-top:6px;color:var(--muted);font-size:12.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.6px;
+  }
+  .cards .divider::before,.cards .divider::after{content:'';flex:1;height:1px;background:var(--line);}
   .card{
     background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
     cursor:pointer;transition:border-color .15s;
@@ -186,12 +192,19 @@ function render(){
     return aConcluido - bConcluido;
   });
 
-  $('#cards').innerHTML = ordenados.map(d => {
+  // Marca em qual índice começa o primeiro "Concluído" pra inserir o
+  // divisor visual só ali (sem duplicar se não houver concluídos, ou
+  // se todos forem concluídos).
+  const idxPrimeiroConcluido = ordenados.findIndex(d => d.Status === 'Concluído');
+
+  $('#cards').innerHTML = ordenados.map((d, i) => {
     const [cls,label] = statusInfo(d.Status);
     const paradas = d.Paradas || [];
     const lojaAtual = paradas.find(p => p.HoraChegada && !p.HoraSaida);
     const situacao = lojaAtual ? `Na loja ${lojaAtual.NumeroLoja}` : (paradas.length ? `${paradas.filter(p=>p.HoraSaida).length}/${paradas.length} lojas concluídas` : 'Sem lojas registradas');
+    const divisor = (i === idxPrimeiroConcluido && idxPrimeiroConcluido > 0) ? '<div class="divider">Concluídos</div>' : '';
     return `
+      ${divisor}
       <div class="card" onclick="abrirDetalhe('${d.ID}')">
         <div class="top">
           <div><div class="placa">${d.Placa || '—'}</div><div class="op">${d.Motorista ? d.Motorista + ' · ' : ''}${d.Operacao || ''} · ${d.Destino || 'sem destino'}</div></div>
