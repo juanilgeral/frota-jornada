@@ -178,7 +178,15 @@ function render(){
     return;
   }
 
-  $('#cards').innerHTML = DADOS.map(d => {
+  // Concluídos vão pro final da lista; dentro de cada grupo mantém a
+  // ordem que já veio do backend (mais recentemente atualizado primeiro).
+  const ordenados = DADOS.slice().sort((a, b) => {
+    const aConcluido = a.Status === 'Concluído' ? 1 : 0;
+    const bConcluido = b.Status === 'Concluído' ? 1 : 0;
+    return aConcluido - bConcluido;
+  });
+
+  $('#cards').innerHTML = ordenados.map(d => {
     const [cls,label] = statusInfo(d.Status);
     const paradas = d.Paradas || [];
     const lojaAtual = paradas.find(p => p.HoraChegada && !p.HoraSaida);
