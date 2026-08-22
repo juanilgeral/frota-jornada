@@ -40,6 +40,16 @@
     text-transform:uppercase;letter-spacing:.6px;
   }
   .cards .divider::before,.cards .divider::after{content:'';flex:1;height:1px;background:var(--line);}
+  .cards .op-divider{
+    margin-top:18px;color:var(--amber);font-size:14px;letter-spacing:.8px;
+  }
+  .cards .op-divider:first-child{margin-top:0;}
+  .cards .op-divider::before,.cards .op-divider::after{background:var(--amber-d);opacity:.35;}
+  .cards .op-count{
+    background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;
+    padding:2px 8px;border-radius:999px;text-transform:none;letter-spacing:0;
+  }
+  .cards .sub-divider{margin-top:6px;}
   .card{
     background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
     cursor:pointer;transition:border-color .15s;
@@ -184,27 +194,27 @@ function render(){
     return;
   }
 
-  // Concluídos vão pro final da lista; dentro de cada grupo mantém a
-  // ordem que já veio do backend (mais recentemente atualizado primeiro).
-  const ordenados = DADOS.slice().sort((a, b) => {
-    const aConcluido = a.Status === 'Concluído' ? 1 : 0;
-    const bConcluido = b.Status === 'Concluído' ? 1 : 0;
-    return aConcluido - bConcluido;
-  });
+  // Ordem fixa das operações (mesma do seletor de filtro). Operações que
+  // não estiverem nessa lista (dado inesperado/legado) caem no grupo
+  // "OUTRAS", sempre por último.
+  const ORDEM_OPERACOES = ['LS','TL','HT','CV','GB','CD','MANUTENÇÃO','BASE'];
 
-  // Marca em qual índice começa o primeiro "Concluído" pra inserir o
-  // divisor visual só ali (sem duplicar se não houver concluídos, ou
-  // se todos forem concluídos).
-  const idxPrimeiroConcluido = ordenados.findIndex(d => d.Status === 'Concluído');
+  function ordenarPorStatus(lista){
+    // Concluídos vão pro final do grupo; dentro de cada bloco mantém a
+    // ordem que já veio do backend (mais recentemente atualizado primeiro).
+    return lista.slice().sort((a, b) => {
+      const aConcluido = a.Status === 'Concluído' ? 1 : 0;
+      const bConcluido = b.Status === 'Concluído' ? 1 : 0;
+      return aConcluido - bConcluido;
+    });
+  }
 
-  $('#cards').innerHTML = ordenados.map((d, i) => {
+  function cardHtml(d){
     const [cls,label] = statusInfo(d.Status);
     const paradas = d.Paradas || [];
     const lojaAtual = paradas.find(p => p.HoraChegada && !p.HoraSaida);
     const situacao = lojaAtual ? `Na loja ${lojaAtual.NumeroLoja}` : (paradas.length ? `${paradas.filter(p=>p.HoraSaida).length}/${paradas.length} lojas concluídas` : 'Sem lojas registradas');
-    const divisor = (i === idxPrimeiroConcluido && idxPrimeiroConcluido > 0) ? '<div class="divider">Concluídos</div>' : '';
     return `
-      ${divisor}
       <div class="card" onclick="abrirDetalhe('${d.ID}')">
         <div class="top">
           <div><div class="placa">${d.Placa || '—'}</div><div class="op">${d.Motorista ? d.Motorista + ' · ' : ''}${d.Operacao || ''} · ${d.Destino || 'sem destino'}</div></div>
@@ -216,6 +226,22 @@ function render(){
         ${d.TotalKm ? `<div class="line"><span>Km rodados</span><b>${d.TotalKm}</b></div>` : ''}
         <div class="foot">Atualizado ${d.UltimaAtualizacao || '—'}</div>
       </div>
+    `;
+  }
+
+  const grupos = ORDEM_OPERACOES.map(op => ({ op, itens: DADOS.filter(d => d.Operacao === op) }));
+  const outras = DADOS.filter(d => !ORDEM_OPERACOES.includes(d.Operacao));
+  if(outras.length) grupos.push({ op: 'OUTRAS', itens: outras });
+
+  $('#cards').innerHTML = grupos.filter(g => g.itens.length).map(g => {
+    const itensOrdenados = ordenarPorStatus(g.itens);
+    const idxPrimeiroConcluido = itensOrdenados.findIndex(d => d.Status === 'Concluído');
+    return `
+      <div class="divider op-divider">${g.op} <span class="op-count">${g.itens.length}</span></div>
+      ${itensOrdenados.map((d, i) => {
+        const subDivisor = (i === idxPrimeiroConcluido && idxPrimeiroConcluido > 0) ? '<div class="divider sub-divider">Concluídos</div>' : '';
+        return subDivisor + cardHtml(d);
+      }).join('')}
     `;
   }).join('');
 }
