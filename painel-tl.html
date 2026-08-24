@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frota Jornada — Tele-Rio (TL)</title>
+<style>
+  :root{
+    --bg:#0f1620; --card:#16202c; --card2:#1c2836; --line:#2a3746;
+    --text:#e8edf3; --muted:#b7c4d1; --amber:#f2a93b; --green:#3fbb78;
+    --blue:#4f9ce8; --purple:#b18ef0; --red:#e5615f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  header{
+    position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#101822,#0f1620 92%);
+    padding:14px 18px;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+  }
+  header h1{margin:0;font-size:17px;font-weight:700;}
+  header h1 span{color:var(--amber);}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .controls input,.controls select{
+    padding:8px 10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card2);color:var(--text);font-size:13.5px;
+  }
+  .live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.3;}100%{opacity:1;}}
+  .wrap{width:100%;max-width:none;margin:0;padding:20px clamp(16px,3vw,48px) 32px;}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0;}
+  .stat .num{font-size:22px;font-weight:800;}
+  .stat .lbl{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;}
+  .cards .divider{
+    grid-column:1/-1;display:flex;align-items:center;gap:10px;
+    margin-top:6px;color:var(--muted);font-size:12.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.6px;
+  }
+  .cards .divider::before,.cards .divider::after{content:'';flex:1;height:1px;background:var(--line);}
+  .cards .op-divider{
+    margin-top:18px;color:var(--amber);font-size:14px;letter-spacing:.8px;
+  }
+  .cards .op-divider:first-child{margin-top:0;}
+  .cards .op-divider::before,.cards .op-divider::after{background:var(--amber-d);opacity:.35;}
+  .cards .op-count{
+    background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;
+    padding:2px 8px;border-radius:999px;text-transform:none;letter-spacing:0;
+  }
+  .cards .sub-divider{margin-top:6px;}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+    cursor:pointer;transition:border-color .15s;
+  }
+  .card:hover{border-color:var(--amber);}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+  .card .placa{font-size:16px;font-weight:800;}
+  .card .op{font-size:11.5px;color:var(--muted);}
+  .pill{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;}
+  .pill.andamento{background:#3a2f10;color:var(--amber);}
+  .pill.rota{background:#132a3c;color:var(--blue);}
+  .pill.retorno{background:#2b1f3a;color:var(--purple);}
+  .pill.concluido{background:#12301f;color:var(--green);}
+  .card .line{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:3px 0;}
+  .card .line b{color:var(--text);font-weight:600;}
+  .card .foot{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);}
+  .empty{color:var(--muted);text-align:center;padding:60px 20px;font-size:14px;}
+
+  /* modal */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(5,8,12,.75);z-index:40;
+    align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;
+  }
+  .overlay.show{display:flex;}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    max-width:560px;width:100%;padding:20px;margin-top:20px;}
+  .modal h2{margin-top:0;font-size:17px;}
+  .modal .close{float:right;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:12px 0;}
+  .grid2 .line{font-size:13px;color:var(--muted);}
+  .grid2 .line b{display:block;color:var(--text);font-size:14.5px;margin-top:2px;}
+  .loja-row{background:var(--card2);border-radius:10px;padding:10px 12px;margin-top:10px;}
+  .loja-row .lh{display:flex;justify-content:space-between;font-weight:700;font-size:13.5px;margin-bottom:6px;}
+  @media (min-width:1700px){ .cards{grid-template-columns:repeat(5,minmax(0,1fr));} }
+  @media (max-width:900px){
+    header{align-items:flex-start;}
+    .controls{width:100%;}
+    .controls input,.controls select{flex:1;min-width:140px;}
+    .live{margin-left:auto;}
+  }
+  @media (max-width:640px){
+    .wrap{padding:14px 12px 24px;}
+    .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px;}
+    .cards{grid-template-columns:1fr;gap:10px;}
+    .grid2{grid-template-columns:1fr 1fr;}
+    header{padding:12px 14px;}
+    header h1{font-size:15px;}
+    .controls{gap:6px;}
+    .controls input,.controls select{min-width:0;font-size:12px;padding:8px 7px;}
+    .live{width:100%;margin-left:0;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Frota <span>Jornada</span> · Tele-Rio <span style="color:var(--blue)">(TL)</span></h1>
+  <div class="controls">
+    <input type="date" id="fData">
+    <select id="fStatus">
+      <option value="">Todos os status</option>
+      <option value="Em andamento">Em andamento</option>
+      <option value="Em rota / lojas">Em rota / lojas</option>
+      <option value="Retornando ao CD">Retornando ao CD</option>
+      <option value="Concluído">Concluído</option>
+    </select>
+    <!-- Operação fixa em TL — visualização exclusiva do CD Tele-Rio -->
+    <div class="live" style="padding:6px 12px;background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--blue);font-weight:700;">OP: TL</div>
+    <div class="live"><span class="dot"></span> Atualizando a cada <span id="secs">15</span>s</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats" id="stats"></div>
+  <div class="cards" id="cards"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script>
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec'
+};
+const REFRESH_MS = 15000;
+const OPERACOES_PADRAO = ['LS','TL','HT','CV'];
+let DADOS = [];
+
+const $ = s => document.querySelector(s);
+
+function hojeISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function formatarDataBR(iso){
+  if(!iso) return '—';
+  const p = String(iso).split('-');
+  if(p.length !== 3) return iso;
+  return `${p[2]}/${p[1]}/${p[0]}`;
+}
+$('#fData').value = hojeISO();
+
+async function apiGet(params){
+  const url = CONFIG.API_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+
+function statusInfo(status){
+  const map = {
+    'Em andamento':['andamento','Em andamento'],
+    'Em rota / lojas':['rota','Em rota / lojas'],
+    'Retornando ao CD':['retorno','Retornando ao CD'],
+    'Concluído':['concluido','Concluído']
+  };
+  return map[status] || ['andamento', status || '—'];
+}
+
+async function carregar(){
+  if(CONFIG.API_URL.includes('COLE_AQUI')){
+    $('#cards').innerHTML = '<div class="empty">Defina CONFIG.API_URL no topo do arquivo.</div>';
+    return;
+  }
+  const params = {action:'getLancamentos'};
+  if($('#fData').value) params.data = $('#fData').value;
+  if($('#fStatus').value) params.status = $('#fStatus').value;
+  try{
+    let dados = await apiGet(params);
+    if(!Array.isArray(dados)) dados = [];
+    // Painel exclusivo Tele-Rio: sempre filtra operação TL
+    dados = dados.filter(d => d.Operacao === 'TL');
+    DADOS = dados;
+    render();
+  }catch(e){
+    $('#cards').innerHTML = '<div class="empty">Falha ao carregar dados. Verifique a conexão.</div>';
+  }
+}
+
+function render(){
+  // stats
+  const total = DADOS.length;
+  const emAndamento = DADOS.filter(d => d.Status !== 'Concluído').length;
+  const concluidos = DADOS.filter(d => d.Status === 'Concluído').length;
+  const totalKm = DADOS.reduce((s,d)=> s + (parseFloat(d.TotalKm)||0), 0);
+  $('#stats').innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Lançamentos</div></div>
+    <div class="stat"><div class="num" style="color:var(--amber)">${emAndamento}</div><div class="lbl">Em andamento</div></div>
+    <div class="stat"><div class="num" style="color:var(--green)">${concluidos}</div><div class="lbl">Concluídos</div></div>
+    <div class="stat"><div class="num">${totalKm ? totalKm.toLocaleString('pt-BR') : '—'}</div><div class="lbl">Km rodados</div></div>
+  `;
+
+  if(DADOS.length === 0){
+    $('#cards').innerHTML = '<div class="empty">Nenhum lançamento TL para a data/status selecionados.</div>';
+    return;
+  }
+
+  // Operações personalizadas e registros antigos fora da lista padrão caem
+  // no grupo "OUTRAS", sempre por último.
+  function ordenarPorStatus(lista){
+    // Concluídos vão pro final do grupo; dentro de cada bloco mantém a
+    // ordem que já veio do backend (mais recentemente atualizado primeiro).
+    return lista.slice().sort((a, b) => {
+      const aConcluido = a.Status === 'Concluído' ? 1 : 0;
+      const bConcluido = b.Status === 'Concluído' ? 1 : 0;
+      return aConcluido - bConcluido;
+    });
+  }
+
+  function esc(value){
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[ch]));
+  }
+
+  function cardHtml(d){
+    const [cls,label] = statusInfo(d.Status);
+    const paradas = d.Paradas || [];
+    const lojaAtual = paradas.find(p => p.HoraChegada && !p.HoraSaida);
+    const situacao = lojaAtual ? `Na loja ${lojaAtual.NumeroLoja}` : (paradas.length ? `${paradas.filter(p=>p.HoraSaida).length}/${paradas.length} lojas concluídas` : 'Sem lojas registradas');
+    return `
+      <div class="card" onclick="abrirDetalhe('${d.ID}')">
+        <div class="top">
+          <div><div class="placa">${esc(d.Placa || '—')}</div><div class="op">${d.Motorista ? esc(d.Motorista) + ' · ' : ''}${esc(d.Operacao || '')} · ${esc(d.Destino || 'sem destino')}</div></div>
+          <span class="pill ${cls}">${label}</span>
+        </div>
+        <div class="line"><span>Saída programada</span><b>${d.HoraProgramadaSaida || '—'}</b></div>
+        <div class="line"><span>Situação</span><b>${situacao}</b></div>
+        ${d.TotalHorasViagem ? `<div class="line"><span>Horas da viagem</span><b>${d.TotalHorasViagem}</b></div>` : ''}
+        ${d.TotalKm ? `<div class="line"><span>Km rodados</span><b>${d.TotalKm}</b></div>` : ''}
+        <div class="foot">Atualizado ${d.UltimaAtualizacao || '—'}</div>
+      </div>
+    `;
+  }
+
+  // Painel TL: um único grupo (já filtrado)
+  const itensOrdenados = ordenarPorStatus(DADOS);
+  const idxPrimeiroConcluido = itensOrdenados.findIndex(d => d.Status === 'Concluído');
+  $('#cards').innerHTML = `
+    <div class="divider op-divider">TL <span class="op-count">${DADOS.length}</span></div>
+    ${itensOrdenados.map((d, i) => {
+      const subDivisor = (i === idxPrimeiroConcluido && idxPrimeiroConcluido > 0) ? '<div class="divider sub-divider">Concluídos</div>' : '';
+      return subDivisor + cardHtml(d);
+    }).join('')}
+  `;
+}
+
+function abrirDetalhe(id){
+  const d = DADOS.find(x => x.ID === id);
+  if(!d) return;
+  const [cls,label] = statusInfo(d.Status);
+  const paradas = d.Paradas || [];
+  $('#modalBody').innerHTML = `
+    <span class="close" onclick="fecharDetalhe()">&times;</span>
+    <h2>${esc(d.Placa)} <span class="pill ${cls}" style="margin-left:8px">${label}</span></h2>
+    <div class="grid2">
+      <div class="line">Motorista<b>${esc(d.Motorista || '—')}</b></div>
+      <div class="line">Operação<b>${esc(d.Operacao || '—')}</b></div>
+      <div class="line">Destino<b>${esc(d.Destino || '—')}</b></div>
+      <div class="line">Data<b>${formatarDataBR(d.Data)}</b></div>
+      <div class="line">Saída programada<b>${d.HoraProgramadaSaida || '—'}</b></div>
+      <div class="line">Km saída<b>${d.KmSaida || '—'}</b></div>
+      <div class="line">Km chegada<b>${d.KmChegada || '—'}</b></div>
+      <div class="line">Total Km<b>${d.TotalKm || '—'}</b></div>
+      <div class="line">Chegada no CD<b>${d.HoraChegadaCD || '—'}</b></div>
+      <div class="line">Total horas da viagem<b>${d.TotalHorasViagem || '—'}</b></div>
+      <div class="line">Total horas nas lojas<b>${d.TotalHorasLojas || '—'}</b></div>
+      <div class="line">Última atualização<b>${d.UltimaAtualizacao || '—'}</b></div>
+    </div>
+    <div style="font-weight:700;font-size:13.5px;margin-top:14px;color:var(--amber)">LOJAS</div>
+    ${paradas.length === 0 ? '<div style="color:var(--muted);font-size:13px;margin-top:6px">Nenhuma loja registrada ainda.</div>' :
+      paradas.map(p => `
+        <div class="loja-row">
+          <div class="lh"><span>Loja ${p.NumeroLoja}</span><span style="color:var(--green)">${p.TotalLoja || ''}</span></div>
+          <div class="grid2" style="margin:0">
+            <div class="line">Chegada<b>${p.HoraChegada || '—'}</b></div>
+            <div class="line">Saída<b>${p.HoraSaida || '—'}</b></div>
+            <div class="line">Abertura baú<b>${p.HoraAberturaBau || '—'}</b></div>
+            <div class="line">Fechamento baú<b>${p.HoraFechamentoBau || '—'}</b></div>
+          </div>
+        </div>
+      `).join('')
+    }
+  `;
+  $('#overlay').classList.add('show');
+}
+function fecharDetalhe(){ $('#overlay').classList.remove('show'); }
+$('#overlay').addEventListener('click', (e)=>{ if(e.target.id === 'overlay') fecharDetalhe(); });
+
+$('#fData').addEventListener('change', carregar);
+$('#fStatus').addEventListener('change', carregar);
+
+// contador regressivo + auto refresh
+let secsLeft = REFRESH_MS/1000;
+setInterval(()=>{
+  secsLeft--;
+  if(secsLeft <= 0){ secsLeft = REFRESH_MS/1000; carregar(); }
+  $('#secs').textContent = secsLeft;
+}, 1000);
+
+carregar();
+</script>
+</body>
+</html>
