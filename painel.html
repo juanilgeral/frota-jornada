@@ -2,137 +2,364 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0f1e">
 <title>Frota Jornada — Painel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0f1620; --card:#16202c; --card2:#1c2836; --line:#2a3746;
-    --text:#e8edf3; --muted:#b7c4d1; --amber:#f2a93b; --green:#3fbb78;
-    --blue:#4f9ce8; --purple:#b18ef0; --red:#e5615f;
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2234;
+    --border: #1f2d45;
+    --accent: #00d4aa;
+    --accent2: #0066ff;
+    --warn: #ff6b35;
+    --text: #e8edf5;
+    --muted: #5a6a82;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
   }
-  *{box-sizing:border-box;}
-  html,body{margin:0;background:var(--bg);color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
-  header{
-    position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#101822,#0f1620 92%);
-    padding:14px 18px;border-bottom:1px solid var(--line);
-    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
-  }
-  header h1{margin:0;font-size:17px;font-weight:700;}
-  header h1 span{color:var(--amber);}
-  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-  .controls input,.controls select{
-    padding:8px 10px;border-radius:8px;border:1px solid var(--line);
-    background:var(--card2);color:var(--text);font-size:13.5px;
-  }
-  .live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite;}
-  @keyframes pulse{0%{opacity:1;}50%{opacity:.3;}100%{opacity:1;}}
-  .wrap{width:100%;max-width:none;margin:0;padding:20px clamp(16px,3vw,48px) 32px;}
-  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px;}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0;}
-  .stat .num{font-size:22px;font-weight:800;}
-  .stat .lbl{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;}
-  .cards .divider{
-    grid-column:1/-1;display:flex;align-items:center;gap:10px;
-    margin-top:6px;color:var(--muted);font-size:12.5px;font-weight:700;
-    text-transform:uppercase;letter-spacing:.6px;
-  }
-  .cards .divider::before,.cards .divider::after{content:'';flex:1;height:1px;background:var(--line);}
-  .cards .op-divider{
-    margin-top:18px;color:var(--amber);font-size:14px;letter-spacing:.8px;
-  }
-  .cards .op-divider:first-child{margin-top:0;}
-  .cards .op-divider::before,.cards .op-divider::after{background:var(--amber-d);opacity:.35;}
-  .cards .op-count{
-    background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;
-    padding:2px 8px;border-radius:999px;text-transform:none;letter-spacing:0;
-  }
-  .cards .sub-divider{margin-top:6px;}
-  .card{
-    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
-    cursor:pointer;transition:border-color .15s;
-  }
-  .card:hover{border-color:var(--amber);}
-  .card .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
-  .card .placa{font-size:16px;font-weight:800;}
-  .card .op{font-size:11.5px;color:var(--muted);}
-  .pill{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;}
-  .pill.andamento{background:#3a2f10;color:var(--amber);}
-  .pill.rota{background:#132a3c;color:var(--blue);}
-  .pill.retorno{background:#2b1f3a;color:var(--purple);}
-  .pill.concluido{background:#12301f;color:var(--green);}
-  .card .line{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:3px 0;}
-  .card .line b{color:var(--text);font-weight:600;}
-  .card .foot{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);}
-  .empty{color:var(--muted);text-align:center;padding:60px 20px;font-size:14px;}
 
-  /* modal */
-  .overlay{
-    display:none;position:fixed;inset:0;background:rgba(5,8,12,.75);z-index:40;
-    align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
   }
-  .overlay.show{display:flex;}
-  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;
-    max-width:560px;width:100%;padding:20px;margin-top:20px;}
-  .modal h2{margin-top:0;font-size:17px;}
-  .modal .close{float:right;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:12px 0;}
-  .grid2 .line{font-size:13px;color:var(--muted);}
-  .grid2 .line b{display:block;color:var(--text);font-size:14.5px;margin-top:2px;}
-  .loja-row{background:var(--card2);border-radius:10px;padding:10px 12px;margin-top:10px;}
-  .loja-row .lh{display:flex;justify-content:space-between;font-weight:700;font-size:13.5px;margin-bottom:6px;}
-  @media (min-width:1700px){ .cards{grid-template-columns:repeat(5,minmax(0,1fr));} }
-  @media (max-width:900px){
-    header{align-items:flex-start;}
-    .controls{width:100%;}
-    .controls input,.controls select{flex:1;min-width:140px;}
-    .live{margin-left:auto;}
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
-  @media (max-width:640px){
-    .wrap{padding:14px 12px 24px;}
-    .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px;}
-    .cards{grid-template-columns:1fr;gap:10px;}
-    .grid2{grid-template-columns:1fr 1fr;}
-    header{padding:12px 14px;}
-    header h1{font-size:15px;}
-    .controls{gap:6px;}
-    .controls input,.controls select{min-width:0;font-size:12px;padding:8px 7px;}
-    .live{width:100%;margin-left:0;}
+  .admin-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .admin-header h2 span { color: var(--warn); }
+  .admin-header p {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .admin-sync-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+  }
+  .admin-sync-wrap > div {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .btn-sync, .btn-logout {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-sync:hover, .btn-logout:hover { color: var(--text); border-color: var(--warn); }
+  .btn-logout.danger { color: var(--red); border-color: rgba(239,68,68,0.4); }
+  .refresh-badge {
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+  .refresh-badge .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 4px;
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .admin-body {
+    padding: 1rem 1.25rem 2rem;
+    max-width: 100%;
+  }
+
+  .admin-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+  }
+  .admin-tab {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 0.7rem 0.5rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .admin-tab.active {
+    background: var(--warn);
+    color: #fff;
+    border-color: var(--warn);
+  }
+  .admin-tab:not(.active) { opacity: 0.55; cursor: default; }
+
+  .admin-date-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0 0 12px 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+  }
+  .admin-date-row input,
+  .admin-date-row select {
+    flex: 1;
+    min-width: 120px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 0.85rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .admin-date-row select {
+    flex: 0 1 150px;
+    cursor: pointer;
+  }
+  .btn-buscar {
+    background: var(--warn);
+    border: none;
+    border-radius: 10px;
+    padding: 0.6rem 1.1rem;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .btn-buscar:hover { filter: brightness(1.08); }
+
+  .admin-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 0.5rem;
+    text-align: center;
+  }
+  .stat-box .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+  .stat-box .stat-label {
+    font-size: 0.6rem;
+    color: #c8a96e;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 3px;
+  }
+
+  .admin-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    max-height: calc(100vh - 280px);
+  }
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    min-width: 1400px;
+  }
+  .admin-table thead { position: sticky; top: 0; z-index: 5; }
+  .admin-table th {
+    background: var(--surface2);
+    color: #c8a96e;
+    padding: 0.55rem 0.7rem;
+    text-align: left;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-table td {
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: rgba(255,255,255,0.03); }
+  .admin-empty {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  #admin-tbody tr.grupo-a { background: rgba(255,255,255,0.02); }
+  #admin-tbody tr.grupo-b { background: rgba(0,102,255,0.035); }
+
+  .pill {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+  .pill-green  { background: rgba(34,197,94,0.15); color: var(--green); }
+  .pill-yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .pill-blue   { background: rgba(0,102,255,0.15); color: #7eb3ff; }
+  .pill-red    { background: rgba(239,68,68,0.15); color: var(--red); }
+  .pill-muted  { background: rgba(90,106,130,0.15); color: var(--muted); }
+  .pill-purple { background: rgba(177,142,240,0.15); color: #b18ef0; }
+
+  .time { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .sub-nome { font-weight: 500; color: var(--muted); font-size: 0.78rem; }
+
+  @media (max-width: 700px) {
+    .admin-stats { grid-template-columns: repeat(2, 1fr); }
+    .admin-header { padding: 0.85rem 1rem; }
+    .admin-body { padding: 0.85rem 1rem 1.5rem; }
   }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Frota <span>Jornada</span> · Painel</h1>
-  <div class="controls">
-    <input type="date" id="fData">
-    <select id="fStatus">
-      <option value="">Todos os status</option>
-      <option value="Em andamento">Em andamento</option>
-      <option value="Em rota / lojas">Em rota / lojas</option>
-      <option value="Retornando ao CD">Retornando ao CD</option>
-      <option value="Concluído">Concluído</option>
-    </select>
-    <select id="fOp">
-      <option value="">Todas operações</option>
-      <option value="LS">LS</option><option value="TL">TL</option>
-      <option value="HT">HT</option><option value="CV">CV</option>
-      <option value="__OUTRAS__">OUTRAS (inclui OUTRO)</option>
-    </select>
-    <div class="live"><span class="dot"></span> Atualizando a cada <span id="secs">15</span>s</div>
+<div class="admin-header">
+  <div>
+    <h2>⚙️ Painel <span>Admin</span></h2>
+    <p>Frota Jornada · Administrador</p>
   </div>
-</header>
-
-<div class="wrap">
-  <div class="stats" id="stats"></div>
-  <div class="cards" id="cards"></div>
+  <div class="admin-sync-wrap">
+    <div>
+      <button class="btn-sync" onclick="carregar()">🔄 Sync</button>
+      <button class="btn-logout" onclick="window.open('https://juanilgeral.github.io/jornada/','_blank')">🚚 Jornada</button>
+      <button class="btn-logout danger" onclick="limparFiltros()">🗑️ Limpar</button>
+    </div>
+    <div class="refresh-badge"><span class="dot"></span>atualiza em <span id="secs">15</span>s</div>
+  </div>
 </div>
 
-<div class="overlay" id="overlay">
-  <div class="modal" id="modalBody"></div>
+<div class="admin-body">
+  <div class="admin-tabs">
+    <button class="admin-tab active" id="tab-dia" onclick="mudarAba('dia')">📋 Registros do Dia</button>
+    <button class="admin-tab" id="tab-semana" onclick="mudarAba('semana')" style="opacity:.5;cursor:default;" title="Em breve">📊 Horas Extras</button>
+  </div>
+
+  <div id="painel-dia">
+    <div class="admin-date-row">
+      <input type="date" id="admin-data" />
+      <select id="admin-filtro-op" onchange="render()">
+        <option value="">Todas operações</option>
+        <option value="LS">LS</option>
+        <option value="TL">TL</option>
+        <option value="HT">HT</option>
+        <option value="CV">CV</option>
+        <option value="__SEM__">Sem operação</option>
+        <option value="__OUTRAS__">Outras</option>
+      </select>
+      <button class="btn-buscar" onclick="carregar()">Buscar</button>
+    </div>
+
+    <div class="admin-stats">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-total" style="color:var(--text)">—</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-iniciados" style="color:var(--green)">—</div>
+        <div class="stat-label">Iniciaram</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-almoco" style="color:var(--yellow)">—</div>
+        <div class="stat-label">Almoço</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-finalizados" style="color:var(--red)">—</div>
+        <div class="stat-label">Finalizaram</div>
+      </div>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Placa</th>
+            <th>Início</th>
+            <th>Operação</th>
+            <th>Destino</th>
+            <th>Saída Veíc.</th>
+            <th>Chegada Loja</th>
+            <th>Abertura Baú</th>
+            <th>Fechamento Baú</th>
+            <th>Saída Loja</th>
+            <th>Total Loja</th>
+            <th>Parada</th>
+            <th>Retorno</th>
+            <th>Chegada CD</th>
+            <th>Km Chegada</th>
+            <th>Fim</th>
+            <th>Trabalhado</th>
+            <th>Extra</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="admin-tbody">
+          <tr><td colspan="19" class="admin-empty">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="painel-semana" style="display:none;">
+    <div class="admin-empty" style="padding:3rem;">Módulo de Horas Extras em breve.</div>
+  </div>
 </div>
 
 <script>
@@ -140,185 +367,198 @@ const CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec'
 };
 const REFRESH_MS = 15000;
-const OPERACOES_PADRAO = ['LS','TL','HT','CV'];
+const OPS_PADRAO = ['LS', 'TL', 'HT', 'CV'];
+
 let DADOS = [];
 
 const $ = s => document.querySelector(s);
 
-function hojeISO(){
+function hojeISO() {
   const d = new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
-function formatarDataBR(iso){
-  if(!iso) return '—';
-  const p = String(iso).split('-');
-  if(p.length !== 3) return iso;
-  return `${p[2]}/${p[1]}/${p[0]}`;
-}
-$('#fData').value = hojeISO();
+$('#admin-data').value = hojeISO();
 
-async function apiGet(params){
-  const url = CONFIG.API_URL + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url);
-  return res.json();
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
 }
 
-function statusInfo(status){
-  const map = {
-    'Em andamento':['andamento','Em andamento'],
-    'Em rota / lojas':['rota','Em rota / lojas'],
-    'Retornando ao CD':['retorno','Retornando ao CD'],
-    'Concluído':['concluido','Concluído']
-  };
-  return map[status] || ['andamento', status || '—'];
+function normalizarNome(n) {
+  return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
 }
 
-async function carregar(){
-  if(CONFIG.API_URL.includes('COLE_AQUI')){
-    $('#cards').innerHTML = '<div class="empty">Defina CONFIG.API_URL no topo do arquivo painel.html.</div>';
-    return;
-  }
-  const params = {action:'getLancamentos'};
-  if($('#fData').value) params.data = $('#fData').value;
-  if($('#fStatus').value) params.status = $('#fStatus').value;
-  try{
-    let dados = await apiGet(params);
-    if(!Array.isArray(dados)) dados = [];
-    const filtroOperacao = $('#fOp').value;
-    if(filtroOperacao === '__OUTRAS__') dados = dados.filter(d => !OPERACOES_PADRAO.includes(d.Operacao));
-    else if(filtroOperacao) dados = dados.filter(d => d.Operacao === filtroOperacao);
-    DADOS = dados;
+function operacaoPassaFiltro(op, filtro) {
+  const o = String(op || '').trim().toUpperCase();
+  if (!filtro) return true;
+  if (filtro === '__SEM__') return !o;
+  if (filtro === '__OUTRAS__') return o && !OPS_PADRAO.includes(o);
+  return o === String(filtro).toUpperCase();
+}
+
+function statusInfo(status) {
+  const t = String(status || '').toLowerCase();
+  if (t.includes('conclu') || t.includes('finaliz')) return { label: 'Finalizado', cls: 'pill-red' };
+  if (t.includes('almo') || t.includes('refei')) return { label: 'Almoço', cls: 'pill-yellow' };
+  if (t.includes('retorno') || t.includes('retorn')) return { label: 'Trabalhando', cls: 'pill-green' };
+  if (t.includes('rota') || t.includes('loja')) return { label: 'Em serviço', cls: 'pill-blue' };
+  if (t.includes('andament') || t.includes('servi') || t.includes('trabalh')) return { label: 'Em serviço', cls: 'pill-blue' };
+  return { label: status || '—', cls: 'pill-muted' };
+}
+
+async function carregar() {
+  const data = $('#admin-data').value;
+  if (!data) return;
+
+  try {
+    const url = CONFIG.API_URL + '?action=getLancamentos&data=' + encodeURIComponent(data);
+    const res = await fetch(url);
+    let lista = await res.json();
+    if (!Array.isArray(lista)) lista = [];
+
+    const mapa = {};
+    lista.forEach(lanc => {
+      const chave = normalizarNome(lanc.Motorista);
+      if (!chave) return;
+      if (!mapa[chave]) mapa[chave] = { nome: lanc.Motorista || chave, viagens: [] };
+
+      const primeira = (lanc.Paradas && lanc.Paradas[0]) || {};
+      mapa[chave].viagens.push({
+        placa: lanc.Placa || '',
+        operacao: lanc.Operacao || '',
+        destino: lanc.Destino || '',
+        saidaVeiculo: lanc.HoraProgramadaSaida || lanc.HoraSaida || '',
+        chegadaLoja: primeira.HoraChegada || '',
+        aberturaBau: primeira.HoraAberturaBau || '',
+        fechamentoBau: primeira.HoraFechamentoBau || '',
+        saidaLoja: primeira.HoraSaida || '',
+        totalLoja: primeira.TotalLoja || '',
+        chegadaCD: lanc.HoraChegadaCD || '',
+        kmChegada: lanc.KmChegada || '',
+        horasViagem: lanc.TotalHorasViagem || '',
+        status: lanc.Status || '—'
+      });
+    });
+
+    Object.values(mapa).forEach(g => {
+      g.viagens.sort((a, b) => (a.saidaVeiculo || '').localeCompare(b.saidaVeiculo || ''));
+    });
+
+    DADOS = Object.values(mapa).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     render();
-  }catch(e){
-    $('#cards').innerHTML = '<div class="empty">Falha ao carregar dados. Verifique a conexão.</div>';
-  }
-}
-
-function render(){
-  // stats
-  const total = DADOS.length;
-  const emAndamento = DADOS.filter(d => d.Status !== 'Concluído').length;
-  const concluidos = DADOS.filter(d => d.Status === 'Concluído').length;
-  const totalKm = DADOS.reduce((s,d)=> s + (parseFloat(d.TotalKm)||0), 0);
-  $('#stats').innerHTML = `
-    <div class="stat"><div class="num">${total}</div><div class="lbl">Lançamentos</div></div>
-    <div class="stat"><div class="num" style="color:var(--amber)">${emAndamento}</div><div class="lbl">Em andamento</div></div>
-    <div class="stat"><div class="num" style="color:var(--green)">${concluidos}</div><div class="lbl">Concluídos</div></div>
-    <div class="stat"><div class="num">${totalKm ? totalKm.toLocaleString('pt-BR') : '—'}</div><div class="lbl">Km rodados</div></div>
-  `;
-
-  if(DADOS.length === 0){
-    $('#cards').innerHTML = '<div class="empty">Nenhum lançamento para os filtros selecionados.</div>';
-    return;
-  }
-
-  // Operações personalizadas e registros antigos fora da lista padrão caem
-  // no grupo "OUTRAS", sempre por último.
-  function ordenarPorStatus(lista){
-    // Concluídos vão pro final do grupo; dentro de cada bloco mantém a
-    // ordem que já veio do backend (mais recentemente atualizado primeiro).
-    return lista.slice().sort((a, b) => {
-      const aConcluido = a.Status === 'Concluído' ? 1 : 0;
-      const bConcluido = b.Status === 'Concluído' ? 1 : 0;
-      return aConcluido - bConcluido;
+  } catch (e) {
+    console.error(e);
+    $('#admin-tbody').innerHTML = '<tr><td colspan="19" class="admin-empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
+    ['stat-total', 'stat-iniciados', 'stat-almoco', 'stat-finalizados'].forEach(id => {
+      document.getElementById(id).textContent = '0';
     });
   }
-
-  function esc(value){
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[ch]));
-  }
-
-  function cardHtml(d){
-    const [cls,label] = statusInfo(d.Status);
-    const paradas = d.Paradas || [];
-    const lojaAtual = paradas.find(p => p.HoraChegada && !p.HoraSaida);
-    const situacao = lojaAtual ? `Na loja ${lojaAtual.NumeroLoja}` : (paradas.length ? `${paradas.filter(p=>p.HoraSaida).length}/${paradas.length} lojas concluídas` : 'Sem lojas registradas');
-    return `
-      <div class="card" onclick="abrirDetalhe('${d.ID}')">
-        <div class="top">
-          <div><div class="placa">${esc(d.Placa || '—')}</div><div class="op">${d.Motorista ? esc(d.Motorista) + ' · ' : ''}${esc(d.Operacao || '')} · ${esc(d.Destino || 'sem destino')}</div></div>
-          <span class="pill ${cls}">${label}</span>
-        </div>
-        <div class="line"><span>Saída programada</span><b>${d.HoraProgramadaSaida || '—'}</b></div>
-        <div class="line"><span>Situação</span><b>${situacao}</b></div>
-        ${d.TotalHorasViagem ? `<div class="line"><span>Horas da viagem</span><b>${d.TotalHorasViagem}</b></div>` : ''}
-        ${d.TotalKm ? `<div class="line"><span>Km rodados</span><b>${d.TotalKm}</b></div>` : ''}
-        <div class="foot">Atualizado ${d.UltimaAtualizacao || '—'}</div>
-      </div>
-    `;
-  }
-
-  const grupos = OPERACOES_PADRAO.map(op => ({ op, itens: DADOS.filter(d => d.Operacao === op) }));
-  const outras = DADOS.filter(d => !OPERACOES_PADRAO.includes(d.Operacao));
-  if(outras.length) grupos.push({ op: 'OUTRAS', itens: outras });
-
-  $('#cards').innerHTML = grupos.filter(g => g.itens.length).map(g => {
-    const itensOrdenados = ordenarPorStatus(g.itens);
-    const idxPrimeiroConcluido = itensOrdenados.findIndex(d => d.Status === 'Concluído');
-    return `
-      <div class="divider op-divider">${g.op} <span class="op-count">${g.itens.length}</span></div>
-      ${itensOrdenados.map((d, i) => {
-        const subDivisor = (i === idxPrimeiroConcluido && idxPrimeiroConcluido > 0) ? '<div class="divider sub-divider">Concluídos</div>' : '';
-        return subDivisor + cardHtml(d);
-      }).join('')}
-    `;
-  }).join('');
 }
 
-function abrirDetalhe(id){
-  const d = DADOS.find(x => x.ID === id);
-  if(!d) return;
-  const [cls,label] = statusInfo(d.Status);
-  const paradas = d.Paradas || [];
-  $('#modalBody').innerHTML = `
-    <span class="close" onclick="fecharDetalhe()">&times;</span>
-    <h2>${esc(d.Placa)} <span class="pill ${cls}" style="margin-left:8px">${label}</span></h2>
-    <div class="grid2">
-      <div class="line">Motorista<b>${esc(d.Motorista || '—')}</b></div>
-      <div class="line">Operação<b>${esc(d.Operacao || '—')}</b></div>
-      <div class="line">Destino<b>${esc(d.Destino || '—')}</b></div>
-      <div class="line">Data<b>${formatarDataBR(d.Data)}</b></div>
-      <div class="line">Saída programada<b>${d.HoraProgramadaSaida || '—'}</b></div>
-      <div class="line">Km saída<b>${d.KmSaida || '—'}</b></div>
-      <div class="line">Km chegada<b>${d.KmChegada || '—'}</b></div>
-      <div class="line">Total Km<b>${d.TotalKm || '—'}</b></div>
-      <div class="line">Chegada no CD<b>${d.HoraChegadaCD || '—'}</b></div>
-      <div class="line">Total horas da viagem<b>${d.TotalHorasViagem || '—'}</b></div>
-      <div class="line">Total horas nas lojas<b>${d.TotalHorasLojas || '—'}</b></div>
-      <div class="line">Última atualização<b>${d.UltimaAtualizacao || '—'}</b></div>
-    </div>
-    <div style="font-weight:700;font-size:13.5px;margin-top:14px;color:var(--amber)">LOJAS</div>
-    ${paradas.length === 0 ? '<div style="color:var(--muted);font-size:13px;margin-top:6px">Nenhuma loja registrada ainda.</div>' :
-      paradas.map(p => `
-        <div class="loja-row">
-          <div class="lh"><span>Loja ${p.NumeroLoja}</span><span style="color:var(--green)">${p.TotalLoja || ''}</span></div>
-          <div class="grid2" style="margin:0">
-            <div class="line">Chegada<b>${p.HoraChegada || '—'}</b></div>
-            <div class="line">Saída<b>${p.HoraSaida || '—'}</b></div>
-            <div class="line">Abertura baú<b>${p.HoraAberturaBau || '—'}</b></div>
-            <div class="line">Fechamento baú<b>${p.HoraFechamentoBau || '—'}</b></div>
-          </div>
-        </div>
-      `).join('')
-    }
-  `;
-  $('#overlay').classList.add('show');
+function render() {
+  const filtroOp = ($('#admin-filtro-op') || {}).value || '';
+  const vazio = '<span style="color:var(--muted)">—</span>';
+  const tbody = $('#admin-tbody');
+
+  let totalMotoristas = 0;
+  let iniciados = 0;
+  let almoco = 0;
+  let finalizados = 0;
+  let linhas = '';
+  let idxGrupo = 0;
+
+  DADOS.forEach(grupo => {
+    const viagens = filtroOp
+      ? grupo.viagens.filter(v => operacaoPassaFiltro(v.operacao, filtroOp))
+      : grupo.viagens;
+    if (!viagens.length) return;
+
+    totalMotoristas++;
+    const temFinalizado = viagens.some(v => /conclu|finaliz/i.test(v.status));
+    const temAlmoco = viagens.some(v => /almo|refei/i.test(v.status));
+    if (temFinalizado) finalizados++;
+    else if (temAlmoco) almoco++;
+    else iniciados++;
+
+    const classe = idxGrupo % 2 === 0 ? 'grupo-a' : 'grupo-b';
+    idxGrupo++;
+    const qtd = viagens.length;
+
+    viagens.forEach((v, idx) => {
+      const st = statusInfo(v.status);
+      const nomeCel = idx === 0
+        ? `<td style="font-weight:600">${esc(grupo.nome)}${qtd > 1 ? ` <span class="pill pill-muted" style="font-size:0.62rem">${qtd} viagens</span>` : ''}</td>`
+        : `<td class="sub-nome">↳ ${idx + 1}ª viagem</td>`;
+
+      linhas += `<tr class="${classe}">
+        ${nomeCel}
+        <td style="font-weight:700;letter-spacing:.3px">${esc(v.placa || '—')}</td>
+        <td>${vazio}</td>
+        <td>${v.operacao ? `<span class="pill pill-blue">${esc(v.operacao)}</span>` : vazio}</td>
+        <td>${esc(v.destino || '—')}</td>
+        <td class="time">${v.saidaVeiculo || vazio}</td>
+        <td class="time">${v.chegadaLoja || vazio}</td>
+        <td class="time">${v.aberturaBau || vazio}</td>
+        <td class="time">${v.fechamentoBau || vazio}</td>
+        <td class="time">${v.saidaLoja || vazio}</td>
+        <td class="time">${v.totalLoja || vazio}</td>
+        <td>${vazio}</td>
+        <td>${vazio}</td>
+        <td class="time">${v.chegadaCD || vazio}</td>
+        <td>${v.kmChegada || vazio}</td>
+        <td>${vazio}</td>
+        <td class="time">${v.horasViagem || vazio}</td>
+        <td>${vazio}</td>
+        <td><span class="pill ${st.cls}">${esc(st.label)}</span></td>
+      </tr>`;
+    });
+  });
+
+  if (!linhas) {
+    const msg = filtroOp
+      ? 'Nenhum registro para a operação selecionada nesta data'
+      : 'Nenhum registro encontrado para esta data';
+    tbody.innerHTML = `<tr><td colspan="19" class="admin-empty">${msg}</td></tr>`;
+    document.getElementById('stat-total').textContent = '0';
+    document.getElementById('stat-iniciados').textContent = '0';
+    document.getElementById('stat-almoco').textContent = '0';
+    document.getElementById('stat-finalizados').textContent = '0';
+    return;
+  }
+
+  tbody.innerHTML = linhas;
+  document.getElementById('stat-total').textContent = totalMotoristas;
+  document.getElementById('stat-iniciados').textContent = iniciados;
+  document.getElementById('stat-almoco').textContent = almoco;
+  document.getElementById('stat-finalizados').textContent = finalizados;
 }
-function fecharDetalhe(){ $('#overlay').classList.remove('show'); }
-$('#overlay').addEventListener('click', (e)=>{ if(e.target.id === 'overlay') fecharDetalhe(); });
 
-$('#fData').addEventListener('change', carregar);
-$('#fStatus').addEventListener('change', carregar);
-$('#fOp').addEventListener('change', carregar);
+function mudarAba(aba) {
+  if (aba === 'semana') return;
+  document.getElementById('painel-dia').style.display = 'block';
+  document.getElementById('painel-semana').style.display = 'none';
+  document.getElementById('tab-dia').classList.add('active');
+  document.getElementById('tab-semana').classList.remove('active');
+}
 
-// contador regressivo + auto refresh
-let secsLeft = REFRESH_MS/1000;
-setInterval(()=>{
+function limparFiltros() {
+  $('#admin-data').value = hojeISO();
+  $('#admin-filtro-op').value = '';
+  carregar();
+}
+
+$('#admin-data').addEventListener('change', carregar);
+
+let secsLeft = REFRESH_MS / 1000;
+setInterval(() => {
   secsLeft--;
-  if(secsLeft <= 0){ secsLeft = REFRESH_MS/1000; carregar(); }
-  $('#secs').textContent = secsLeft;
+  if (secsLeft <= 0) {
+    secsLeft = REFRESH_MS / 1000;
+    carregar();
+  }
+  const el = document.getElementById('secs');
+  if (el) el.textContent = secsLeft;
 }, 1000);
 
 carregar();
