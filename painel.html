@@ -407,6 +407,15 @@ function statusInfo(status) {
   return { label: status || '—', cls: 'pill-muted' };
 }
 
+function operacaoClass(op) {
+  const o = String(op || '').trim().toUpperCase();
+  if (o === 'TL') return 'pill-green';   // verde
+  if (o === 'HT') return 'pill-blue';    // azul
+  if (o === 'CV') return 'pill-yellow';  // amarelo
+  if (o === 'LS') return 'pill-red';     // vermelho
+  return 'pill-muted';
+}
+
 async function carregar() {
   const data = $('#admin-data').value;
   if (!data) return;
@@ -495,7 +504,7 @@ function render() {
         ${nomeCel}
         <td style="font-weight:700;letter-spacing:.3px">${esc(v.placa || '—')}</td>
         <td>${vazio}</td>
-        <td>${v.operacao ? `<span class="pill pill-blue">${esc(v.operacao)}</span>` : vazio}</td>
+        <td>${v.operacao ? `<span class="pill ${operacaoClass(v.operacao)}">${esc(v.operacao)}</span>` : vazio}</td>
         <td>${esc(v.destino || '—')}</td>
         <td class="time">${v.saidaVeiculo || vazio}</td>
         <td class="time">${v.chegadaLoja || vazio}</td>
