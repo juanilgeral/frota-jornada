@@ -568,54 +568,111 @@ function renderAndamento(){
     </div>
   `;
 
-  // Bloco das lojas — libera um campo por vez, na sequência, e só pergunta
-  // se tem próxima loja depois que a atual estiver 100% preenchida.
-  // Usa a posição na lista (idx+1) como número confiável da loja, em vez de
-  // confiar cegamente no campo NumeroLoja vindo da planilha.
+  // Tipo de destino: loja (sequência normal) x CD/outro (pula lojas e vai pra finalização).
+  // Se já existir parada gravada, assume loja automaticamente (lançamentos antigos).
+  const tipoKey = 'frota_tipo_destino_' + LANC.ID;
   const paradas = LANC.Paradas || [];
-  const numeroLojaAtual = paradas.length > 0 ? paradas.length : 1;
-  const tituloLoja = `${numeroLojaAtual}ª Loja de entrega`;
-  html += `<div class="card"><h2><span class="n">✓</span> ${tituloLoja}</h2>`;
-  let mostrarPrompt = false;
-  let numeroParaPrompt = 0;
-  paradas.forEach((p, idx) => {
-    const numeroReal = idx + 1;
-    const ehUltima = idx === paradas.length - 1;
-    const completa = !proximoCampoLoja(p);
-    if(!ehUltima || completa){
-      html += renderLojaCompleta(p, numeroReal);
-    }else{
-      html += renderLojaAtiva(p, numeroReal);
-    }
-    if(ehUltima && completa){
-      const jaRespondeu = localStorage.getItem(`frota_loja_fim_${LANC.ID}`);
-      if(!jaRespondeu){
-        mostrarPrompt = true;
-        numeroParaPrompt = numeroReal;
-      }
-    }
-  });
-  if(mostrarPrompt){
+  let tipoDestino = localStorage.getItem(tipoKey);
+  if(!tipoDestino && paradas.length > 0){
+    tipoDestino = 'loja';
+    localStorage.setItem(tipoKey, 'loja');
+  }
+
+  if(!tipoDestino){
+    const dest = String(LANC.Destino || '').trim();
+    const destUp = dest.toUpperCase();
+    const sugereNaoLoja = /^(CD|GB|OUTRO)\b/.test(destUp) || destUp === 'OUTRO' || destUp.startsWith('OUTRO ');
     html += `
-      <div class="loja-block" style="text-align:center">
-        <p style="margin:0 0 10px;font-size:14px">Tem uma ${numeroParaPrompt + 1}ª loja?</p>
-        <div style="display:flex;gap:10px">
-          <button class="secondary" id="btnLojaSim" style="flex:1">Sim</button>
-          <button class="secondary" id="btnLojaNao" style="flex:1">Não</button>
+      <div class="card">
+        <h2><span class="n">2</span> Tipo de chegada</h2>
+        <p style="margin:0 0 12px;font-size:13.5px;color:var(--muted);line-height:1.45">
+          Destino informado: <b style="color:var(--text)">${escHtml(dest || '—')}</b><br>
+          A chegada é em <b style="color:var(--text)">loja de entrega</b> ou em <b style="color:var(--text)">CD / outro destino</b>
+          (ex.: CD, GB, transferência, oficina)?
+        </p>
+        ${sugereNaoLoja ? `<p class="placa-hint" style="margin:0 0 12px">Pelo texto do destino, parece <b>CD / outro</b> — confirme abaixo.</p>` : ''}
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="primary" id="btnTipoLoja" style="margin-top:0">É loja — seguir sequência de lojas</button>
+          <button class="secondary" id="btnTipoCD" style="margin-top:0">É CD / base — finalizar chegada</button>
+          <button class="secondary" id="btnTipoOutro" style="margin-top:0">É outro destino — descrever e finalizar</button>
+        </div>
+        <div id="blocoOutroDestino" class="hidden" style="margin-top:14px">
+          <label>Descreva o destino / serviço</label>
+          <input type="text" id="fDestinoOutro" placeholder="Ex.: Oficina, transferência GB Norte, apoio CD...">
+          <button class="primary" id="btnConfirmarOutroDestino" style="margin-top:10px">Confirmar e abrir finalização</button>
         </div>
       </div>
     `;
-  }
-  html += `</div>`;
-
-  // só libera depois que o motorista responder "Não" pra próxima loja —
-  // enquanto isso (preenchendo a atual ou decidindo se abre outra), fica travado
-  const retornoLiberado = !!localStorage.getItem('frota_loja_fim_' + LANC.ID);
-  if(retornoLiberado){
+  } else if(tipoDestino === 'loja'){
+    // Bloco das lojas — libera um campo por vez, na sequência, e só pergunta
+    // se tem próxima loja depois que a atual estiver 100% preenchida.
+    const numeroLojaAtual = paradas.length > 0 ? paradas.length : 1;
+    const tituloLoja = `${numeroLojaAtual}ª Loja de entrega`;
+    html += `<div class="card"><h2><span class="n">✓</span> ${tituloLoja}</h2>`;
+    if(paradas.length === 0){
+      html += `
+        <p class="placa-hint" style="margin:0 0 10px">Nenhuma loja aberta ainda. Toque abaixo para iniciar a 1ª loja.</p>
+        <button class="primary" id="btnAbrirPrimeiraLoja" style="margin-top:0">Abrir 1ª loja</button>
+        <button class="ghost" id="btnMudarTipoDestino" style="margin-top:10px;width:100%">Não é loja — mudar para CD / outro</button>
+      `;
+    } else {
+      let mostrarPrompt = false;
+      let numeroParaPrompt = 0;
+      paradas.forEach((p, idx) => {
+        const numeroReal = idx + 1;
+        const ehUltima = idx === paradas.length - 1;
+        const completa = !proximoCampoLoja(p);
+        if(!ehUltima || completa){
+          html += renderLojaCompleta(p, numeroReal);
+        }else{
+          html += renderLojaAtiva(p, numeroReal);
+        }
+        if(ehUltima && completa){
+          const jaRespondeu = localStorage.getItem(`frota_loja_fim_${LANC.ID}`);
+          if(!jaRespondeu){
+            mostrarPrompt = true;
+            numeroParaPrompt = numeroReal;
+          }
+        }
+      });
+      if(mostrarPrompt){
+        html += `
+          <div class="loja-block" style="text-align:center">
+            <p style="margin:0 0 10px;font-size:14px">Tem uma ${numeroParaPrompt + 1}ª loja?</p>
+            <div style="display:flex;gap:10px">
+              <button class="secondary" id="btnLojaSim" style="flex:1">Sim</button>
+              <button class="secondary" id="btnLojaNao" style="flex:1">Não</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+    html += `</div>`;
+  } else {
+    // CD ou outro — sem sequência de lojas
+    const labelTipo = tipoDestino === 'cd' ? 'CD / base' : 'Outro destino';
     html += `
       <div class="card">
-        <h2><span class="n">3</span> Retorno ao CD</h2>
-        <label>Hora de chegada do veículo no CD</label>
+        <h2><span class="n">✓</span> Chegada: ${labelTipo}</h2>
+        <div class="summary-line"><span>Destino</span><b>${escHtml(LANC.Destino || '—')}</b></div>
+        <p class="placa-hint" style="margin:8px 0 0">Sem lojas nesta viagem — preencha a chegada abaixo e finalize.</p>
+      </div>
+    `;
+  }
+
+  // Retorno/finalização:
+  // - loja: só depois de responder "Não" pra próxima loja
+  // - cd/outro: liberado na hora
+  const retornoLiberado = tipoDestino === 'cd' || tipoDestino === 'outro'
+    || !!localStorage.getItem('frota_loja_fim_' + LANC.ID);
+  if(tipoDestino && retornoLiberado){
+    const tituloRetorno = (tipoDestino === 'cd' || tipoDestino === 'outro')
+      ? 'Chegada e finalização'
+      : 'Retorno ao CD';
+    html += `
+      <div class="card">
+        <h2><span class="n">3</span> ${tituloRetorno}</h2>
+        <label>Hora de chegada do veículo${tipoDestino === 'loja' ? ' no CD' : ''}</label>
         <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || ''}">
         <div class="row2">
           <div><label>Data chegada do motorista</label><input type="date" id="fDataChegada" value="${LANC.DataChegadaMotorista || hojeISO()}"></div>
@@ -625,7 +682,7 @@ function renderAndamento(){
         <div class="placa-hint" id="status_retorno">Cada campo salva sozinho ao sair dele.</div>
       </div>
     `;
-  }else{
+  } else if(tipoDestino === 'loja'){
     html += `
       <div class="card" style="opacity:.55">
         <h2><span class="n">3</span> Retorno ao CD</h2>
@@ -637,6 +694,23 @@ function renderAndamento(){
   html += `<div class="link-reset" id="btnNovo">Encerrar e iniciar novo lançamento</div>`;
 
   app.innerHTML = html;
+
+  // Escolha do tipo de chegada (loja x CD x outro)
+  if($('#btnTipoLoja')) $('#btnTipoLoja').onclick = () => escolherTipoDestino('loja');
+  if($('#btnTipoCD')) $('#btnTipoCD').onclick = () => escolherTipoDestino('cd');
+  if($('#btnTipoOutro')) $('#btnTipoOutro').onclick = () => {
+    const bloco = $('#blocoOutroDestino');
+    if(bloco) bloco.classList.remove('hidden');
+    const inp = $('#fDestinoOutro');
+    if(inp){ inp.value = LANC.Destino || ''; inp.focus(); }
+  };
+  if($('#btnConfirmarOutroDestino')) $('#btnConfirmarOutroDestino').onclick = confirmarOutroDestino;
+  if($('#btnAbrirPrimeiraLoja')) $('#btnAbrirPrimeiraLoja').onclick = criarProximaLoja;
+  if($('#btnMudarTipoDestino')) $('#btnMudarTipoDestino').onclick = () => {
+    localStorage.removeItem('frota_tipo_destino_' + LANC.ID);
+    localStorage.removeItem('frota_loja_fim_' + LANC.ID);
+    renderAndamento();
+  };
 
   // Inputs de horário da loja: change + blur (em vários celulares o change
   // não dispara ao fechar o seletor de hora).
@@ -757,10 +831,50 @@ async function salvarCampoSequencial(paradaId, campo){
   _salvandoCampo = false;
 }
 
+function escHtml(v){
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function escolherTipoDestino(tipo){
+  if(!LANC || !LANC.ID) return;
+  localStorage.setItem('frota_tipo_destino_' + LANC.ID, tipo);
+  if(tipo === 'cd' || tipo === 'outro'){
+    // libera finalização sem passar pela sequência de lojas
+    localStorage.setItem('frota_loja_fim_' + LANC.ID, '1');
+  }
+  renderAndamento();
+}
+
+async function confirmarOutroDestino(){
+  const inp = $('#fDestinoOutro');
+  const texto = inp ? inp.value.trim() : '';
+  if(!texto){
+    toast('Descreva o destino / serviço', true);
+    return;
+  }
+  const btn = $('#btnConfirmarOutroDestino');
+  if(btn){ btn.disabled = true; btn.textContent = 'Salvando...'; }
+  try{
+    const r = await apiPost({action:'atualizarLancamento', id: LANC.ID, campos: { Destino: texto }});
+    if(r && r.ok === false){
+      toast(r.erro || 'Erro ao salvar destino', true);
+      if(btn){ btn.disabled = false; btn.textContent = 'Confirmar e abrir finalização'; }
+      return;
+    }
+    LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+    escolherTipoDestino('outro');
+  }catch(e){
+    toast('Falha de conexão', true);
+    if(btn){ btn.disabled = false; btn.textContent = 'Confirmar e abrir finalização'; }
+  }
+}
+
 async function criarProximaLoja(){
-  const btn = $('#btnLojaSim');
+  const btn = $('#btnLojaSim') || $('#btnAbrirPrimeiraLoja');
   if(btn){ btn.disabled = true; btn.textContent = 'Abrindo...'; }
   try{
+    // garante tipo loja (ex.: veio do botão "Abrir 1ª loja")
+    if(LANC && LANC.ID) localStorage.setItem('frota_tipo_destino_' + LANC.ID, 'loja');
     const paradas = LANC.Paradas || [];
     const proximoNumero = paradas.length + 1;
     const r = await apiPost({action:'criarParada', lancamentoId: LANC.ID, numeroLoja: proximoNumero});
@@ -769,6 +883,7 @@ async function criarProximaLoja(){
       renderAndamento();
     }
   }catch(e){ toast('Falha de conexão', true); }
+  if(btn){ btn.disabled = false; btn.textContent = btn.id === 'btnAbrirPrimeiraLoja' ? 'Abrir 1ª loja' : 'Sim'; }
 }
 
 function naoTemProximaLoja(){
