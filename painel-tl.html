@@ -125,6 +125,7 @@
       <thead>
         <tr>
           <th>Nome</th>
+          <th>Placa</th>
           <th>Operação</th>
           <th>Destino</th>
           <th>Saída Veíc.</th>
@@ -140,7 +141,7 @@
         </tr>
       </thead>
       <tbody id="tbody">
-        <tr><td colspan="13" class="empty">Carregando...</td></tr>
+        <tr><td colspan="14" class="empty">Carregando...</td></tr>
       </tbody>
     </table>
   </div>
@@ -199,6 +200,7 @@ async function carregar(){
 
       const primeira = (lanc.Paradas && lanc.Paradas[0]) || {};
       mapa[chave].viagens.push({
+        placa: lanc.Placa || '',
         operacao: lanc.Operacao || '',
         destino: lanc.Destino || '',
         saidaVeiculo: lanc.HoraProgramadaSaida || lanc.HoraSaida || '',
@@ -223,7 +225,7 @@ async function carregar(){
     render();
   }catch(e){
     console.error(e);
-    $('#tbody').innerHTML = '<tr><td colspan="13" class="empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
+    $('#tbody').innerHTML = '<tr><td colspan="14" class="empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
   }
 }
 
@@ -241,7 +243,7 @@ function render(){
   `;
 
   if(DADOS.length === 0){
-    $('#tbody').innerHTML = '<tr><td colspan="13" class="empty">Nenhum lançamento TL para esta data.</td></tr>';
+    $('#tbody').innerHTML = '<tr><td colspan="14" class="empty">Nenhum lançamento TL para esta data.</td></tr>';
     return;
   }
 
@@ -257,6 +259,7 @@ function render(){
 
       html += `<tr class="${classe}">
         ${nomeCel}
+        <td style="font-weight:700;letter-spacing:.3px">${esc(v.placa || '—')}</td>
         <td>${v.operacao ? `<span class="badge rota">${esc(v.operacao)}</span>` : '—'}</td>
         <td>${esc(v.destino || '—')}</td>
         <td class="time">${v.saidaVeiculo || '—'}</td>
