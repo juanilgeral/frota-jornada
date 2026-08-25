@@ -569,19 +569,29 @@ function renderAndamento(){
   `;
 
   // Tipo de destino: loja (sequência normal) x CD/outro (pula lojas e vai pra finalização).
-  // Se já existir parada gravada, assume loja automaticamente (lançamentos antigos).
+  // Só assume "loja" automaticamente se já houver progresso real de loja
+  // (abertura/fechamento/saída). Só chegada ou parada vazia NÃO conta —
+  // senão destinos GB/CD/OUTRO ficavam presos na sequência de lojas.
   const tipoKey = 'frota_tipo_destino_' + LANC.ID;
   const paradas = LANC.Paradas || [];
+  const dest = String(LANC.Destino || '').trim();
+  const destUp = dest.toUpperCase();
+  const sugereNaoLoja = /^(CD|GB|OUTRO)\b/.test(destUp) || destUp === 'OUTRO' || destUp.startsWith('OUTRO ');
+  const temProgressoRealLoja = paradas.some(p =>
+    p.HoraAberturaBau || p.HoraFechamentoBau || p.HoraSaida
+  );
   let tipoDestino = localStorage.getItem(tipoKey);
-  if(!tipoDestino && paradas.length > 0){
+  // localStorage antigo pode ter gravado "loja" só porque existia parada vazia/chegada
+  if(tipoDestino === 'loja' && !temProgressoRealLoja && sugereNaoLoja){
+    localStorage.removeItem(tipoKey);
+    tipoDestino = null;
+  }
+  if(!tipoDestino && temProgressoRealLoja){
     tipoDestino = 'loja';
     localStorage.setItem(tipoKey, 'loja');
   }
 
   if(!tipoDestino){
-    const dest = String(LANC.Destino || '').trim();
-    const destUp = dest.toUpperCase();
-    const sugereNaoLoja = /^(CD|GB|OUTRO)\b/.test(destUp) || destUp === 'OUTRO' || destUp.startsWith('OUTRO ');
     html += `
       <div class="card">
         <h2><span class="n">2</span> Tipo de chegada</h2>
@@ -645,6 +655,10 @@ function renderAndamento(){
             </div>
           </div>
         `;
+      }
+      // Escape se ainda não avançou de verdade na sequência de loja
+      if(!temProgressoRealLoja){
+        html += `<button class="ghost" id="btnMudarTipoDestino" style="margin-top:12px;width:100%">Não é loja — mudar para CD / outro</button>`;
       }
     }
     html += `</div>`;
