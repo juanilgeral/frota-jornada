@@ -128,6 +128,7 @@
           <th>Operação</th>
           <th>Destino</th>
           <th>Saída Veíc.</th>
+          <th>Chegada Loja</th>
           <th>Abertura Baú</th>
           <th>Fechamento Baú</th>
           <th>Total Loja</th>
@@ -138,7 +139,7 @@
         </tr>
       </thead>
       <tbody id="tbody">
-        <tr><td colspan="11" class="empty">Carregando...</td></tr>
+        <tr><td colspan="12" class="empty">Carregando...</td></tr>
       </tbody>
     </table>
   </div>
@@ -200,6 +201,7 @@ async function carregar(){
         operacao: lanc.Operacao || '',
         destino: lanc.Destino || '',
         saidaVeiculo: lanc.HoraProgramadaSaida || lanc.HoraSaida || '',
+        chegadaLoja: primeira.HoraChegada || '',
         aberturaBau: primeira.HoraAberturaBau || '',
         fechamentoBau: primeira.HoraFechamentoBau || '',
         totalLoja: primeira.TotalLoja || '',
@@ -219,7 +221,7 @@ async function carregar(){
     render();
   }catch(e){
     console.error(e);
-    $('#tbody').innerHTML = '<tr><td colspan="11" class="empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
+    $('#tbody').innerHTML = '<tr><td colspan="12" class="empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
   }
 }
 
@@ -237,7 +239,7 @@ function render(){
   `;
 
   if(DADOS.length === 0){
-    $('#tbody').innerHTML = '<tr><td colspan="11" class="empty">Nenhum lançamento TL para esta data.</td></tr>';
+    $('#tbody').innerHTML = '<tr><td colspan="12" class="empty">Nenhum lançamento TL para esta data.</td></tr>';
     return;
   }
 
@@ -256,6 +258,7 @@ function render(){
         <td>${v.operacao ? `<span class="badge rota">${esc(v.operacao)}</span>` : '—'}</td>
         <td>${esc(v.destino || '—')}</td>
         <td class="time">${v.saidaVeiculo || '—'}</td>
+        <td class="time">${v.chegadaLoja || '—'}</td>
         <td class="time">${v.aberturaBau || '—'}</td>
         <td class="time">${v.fechamentoBau || '—'}</td>
         <td class="time">${v.totalLoja || '—'}</td>
