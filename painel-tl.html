@@ -131,6 +131,7 @@
           <th>Chegada Loja</th>
           <th>Abertura Baú</th>
           <th>Fechamento Baú</th>
+          <th>Saída Loja</th>
           <th>Total Loja</th>
           <th>Chegada CD</th>
           <th>Km Chegada</th>
@@ -139,7 +140,7 @@
         </tr>
       </thead>
       <tbody id="tbody">
-        <tr><td colspan="12" class="empty">Carregando...</td></tr>
+        <tr><td colspan="13" class="empty">Carregando...</td></tr>
       </tbody>
     </table>
   </div>
@@ -204,6 +205,7 @@ async function carregar(){
         chegadaLoja: primeira.HoraChegada || '',
         aberturaBau: primeira.HoraAberturaBau || '',
         fechamentoBau: primeira.HoraFechamentoBau || '',
+        saidaLoja: primeira.HoraSaida || '',
         totalLoja: primeira.TotalLoja || '',
         chegadaCD: lanc.HoraChegadaCD || '',
         kmChegada: lanc.KmChegada || '',
@@ -221,7 +223,7 @@ async function carregar(){
     render();
   }catch(e){
     console.error(e);
-    $('#tbody').innerHTML = '<tr><td colspan="12" class="empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
+    $('#tbody').innerHTML = '<tr><td colspan="13" class="empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
   }
 }
 
@@ -239,7 +241,7 @@ function render(){
   `;
 
   if(DADOS.length === 0){
-    $('#tbody').innerHTML = '<tr><td colspan="12" class="empty">Nenhum lançamento TL para esta data.</td></tr>';
+    $('#tbody').innerHTML = '<tr><td colspan="13" class="empty">Nenhum lançamento TL para esta data.</td></tr>';
     return;
   }
 
@@ -261,6 +263,7 @@ function render(){
         <td class="time">${v.chegadaLoja || '—'}</td>
         <td class="time">${v.aberturaBau || '—'}</td>
         <td class="time">${v.fechamentoBau || '—'}</td>
+        <td class="time">${v.saidaLoja || '—'}</td>
         <td class="time">${v.totalLoja || '—'}</td>
         <td class="time">${v.chegadaCD || '—'}</td>
         <td>${v.kmChegada || '—'}</td>
