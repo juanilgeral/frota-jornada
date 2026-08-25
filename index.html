@@ -112,6 +112,17 @@
   .badge-ok{color:var(--green);font-size:12px;font-weight:700;}
   .savebar{display:flex;gap:8px;margin-top:8px;}
   .savebar button{flex:1;}
+  .campo-hora-salvar{
+    display:flex;gap:8px;align-items:stretch;
+  }
+  .campo-hora-salvar input[type="time"]{
+    flex:1 1 auto;min-width:0;width:auto;margin:0;
+  }
+  .campo-hora-salvar button.secondary{
+    flex:0 0 auto;width:auto;min-width:96px;margin:0;
+    padding:0 16px;font-size:14px;border-radius:10px;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
   .hidden{display:none !important;}
   .toast{
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
@@ -698,9 +709,9 @@ function renderLojaAtiva(p, numero){
     // frequentemente NÃO dispara ao fechar o seletor de hora, e o app ficava
     // travado no mesmo campo (ex.: Chegada) sem liberar Abertura/Fechamento/Saída.
     html += `<label>${label}</label>`;
-    html += `<div style="display:flex;gap:8px;align-items:center">`;
-    html += `<input type="time" id="p_${p.ID}_${idSuf}" data-parada="${p.ID}" data-campo="${campo}" style="flex:1">`;
-    html += `<button type="button" class="secondary" id="btnSalvarCampo_${p.ID}" data-parada="${p.ID}" data-campo="${campo}" style="flex:0 0 auto;padding:10px 14px;white-space:nowrap">Salvar</button>`;
+    html += `<div class="campo-hora-salvar">`;
+    html += `<input type="time" id="p_${p.ID}_${idSuf}" data-parada="${p.ID}" data-campo="${campo}">`;
+    html += `<button type="button" class="secondary" id="btnSalvarCampo_${p.ID}" data-parada="${p.ID}" data-campo="${campo}">Salvar</button>`;
     html += `</div>`;
     html += `<div class="placa-hint" id="status_${p.ID}">Escolha o horário e toque em Salvar — o próximo campo libera sozinho.</div>`;
   }
