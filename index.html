@@ -291,7 +291,7 @@ function renderInicio(){
       <div class="total" style="margin:0"><span>Data da jornada</span><b>${formatarDataBR(hojeISO())}</b></div>
 
       <label>Hora de saída do veículo:</label>
-      <input type="time" id="fHoraProgSaida" value="${agoraHHMM()}">
+      <input type="time" id="fHoraProgSaida">
 
       <label>Operação</label>
       <div class="opgrid" id="opGrid">
@@ -552,7 +552,7 @@ function renderAndamento(){
       ${LANC.TotalHorasViagem ? `<div class="summary-line"><span>Total horas da viagem</span><b>${LANC.TotalHorasViagem}</b></div>` : ''}
       ${LANC.TotalHorasLojas ? `<div class="summary-line"><span>Total horas nas lojas</span><b>${LANC.TotalHorasLojas}</b></div>` : ''}
       <label style="margin-top:14px">Hora de saída do veículo${!LANC.HoraProgramadaSaida ? ' <span style="color:var(--red)">(faltando)</span>' : ''}</label>
-      <input type="time" id="fHoraSaidaVeiculo" value="${LANC.HoraProgramadaSaida || agoraHHMM()}">
+      <input type="time" id="fHoraSaidaVeiculo" value="${LANC.HoraProgramadaSaida || ''}">
       <div class="placa-hint" id="status_horasaida">${LANC.HoraProgramadaSaida ? 'Salvo ✓' : 'Esqueceu de lançar — preencha aqui, salva sozinho ao sair do campo.'}</div>
     </div>
   `;
@@ -605,7 +605,7 @@ function renderAndamento(){
       <div class="card">
         <h2><span class="n">3</span> Retorno ao CD</h2>
         <label>Hora de chegada do veículo no CD</label>
-        <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || agoraHHMM()}">
+        <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || ''}">
         <div class="row2">
           <div><label>Data chegada do motorista</label><input type="date" id="fDataChegada" value="${LANC.DataChegadaMotorista || hojeISO()}"></div>
           <div><label>Km de chegada</label><input type="number" inputmode="numeric" id="fKmChegada" value="${LANC.KmChegada || ''}"></div>
@@ -627,8 +627,16 @@ function renderAndamento(){
 
   app.innerHTML = html;
 
-  document.querySelectorAll('[data-parada][data-campo]').forEach(el=>{
-    el.addEventListener('change', () => salvarCampoSequencial(el.dataset.parada, el.dataset.campo));
+  // Inputs de horário da loja: change + blur (em vários celulares o change
+  // não dispara ao fechar o seletor de hora).
+  document.querySelectorAll('input[data-parada][data-campo]').forEach(el=>{
+    const salvar = () => salvarCampoSequencial(el.dataset.parada, el.dataset.campo);
+    el.addEventListener('change', salvar);
+    el.addEventListener('blur', salvar);
+  });
+  // Botão Salvar explícito — caminho confiável no celular
+  document.querySelectorAll('button[data-parada][data-campo]').forEach(btn=>{
+    btn.addEventListener('click', () => salvarCampoSequencial(btn.dataset.parada, btn.dataset.campo));
   });
   if($('#btnLojaSim')) $('#btnLojaSim').onclick = criarProximaLoja;
   if($('#btnLojaNao')) $('#btnLojaNao').onclick = naoTemProximaLoja;
@@ -686,35 +694,56 @@ function renderLojaAtiva(p, numero){
   });
   if(proximo){
     const [campo, idSuf, label] = proximo;
-    html += `<label>${label}</label><input type="time" id="p_${p.ID}_${idSuf}" data-parada="${p.ID}" data-campo="${campo}" value="${agoraHHMM()}">`;
-    html += `<div class="placa-hint" id="status_${p.ID}">Preenche esse campo — o próximo libera sozinho.</div>`;
+    // Botão "Salvar" explícito: no celular o evento change do input type=time
+    // frequentemente NÃO dispara ao fechar o seletor de hora, e o app ficava
+    // travado no mesmo campo (ex.: Chegada) sem liberar Abertura/Fechamento/Saída.
+    html += `<label>${label}</label>`;
+    html += `<div style="display:flex;gap:8px;align-items:center">`;
+    html += `<input type="time" id="p_${p.ID}_${idSuf}" data-parada="${p.ID}" data-campo="${campo}" style="flex:1">`;
+    html += `<button type="button" class="secondary" id="btnSalvarCampo_${p.ID}" data-parada="${p.ID}" data-campo="${campo}" style="flex:0 0 auto;padding:10px 14px;white-space:nowrap">Salvar</button>`;
+    html += `</div>`;
+    html += `<div class="placa-hint" id="status_${p.ID}">Escolha o horário e toque em Salvar — o próximo campo libera sozinho.</div>`;
   }
   html += `</div>`;
   return html;
 }
 
-// Salva UM campo por vez, assim que o motorista sai dele, e recarrega a tela
-// pra liberar o próximo campo da sequência (chegada → abertura → fechamento → saída).
+// Evita double-tap / change+blur disparando dois saves ao mesmo tempo
+let _salvandoCampo = false;
+
+// Salva UM campo por vez e recarrega a tela pra liberar o próximo da sequência
+// (chegada → abertura → fechamento → saída).
 async function salvarCampoSequencial(paradaId, campo){
+  if(_salvandoCampo) return;
   const idSuf = { HoraChegada:'chegada', HoraAberturaBau:'abertura', HoraFechamentoBau:'fechamento', HoraSaida:'saida' }[campo];
   const el = document.getElementById(`p_${paradaId}_${idSuf}`);
   const valor = el ? el.value : '';
-  if(!valor) return;
+  if(!valor){
+    toast('Selecione o horário antes de salvar', true);
+    return;
+  }
+  _salvandoCampo = true;
   const status = document.getElementById(`status_${paradaId}`);
+  const btn = document.getElementById(`btnSalvarCampo_${paradaId}`);
   if(status) status.textContent = 'Salvando...';
+  if(btn){ btn.disabled = true; btn.textContent = '...'; }
   try{
     const r = await apiPost({action:'atualizarParada', id: paradaId, campos: {[campo]: valor}});
     if(r.ok){
       LANC = await apiGet({action:'getLancamento', id: LANC.ID});
+      _salvandoCampo = false;
       renderAndamento();
+      return;
     }else{
-      if(status) status.textContent = 'Erro ao salvar!';
+      if(status) status.textContent = 'Erro ao salvar! Tente de novo.';
       toast(r.erro || 'Erro ao salvar', true);
     }
   }catch(e){
     if(status) status.textContent = 'Falha de conexão — tente de novo';
     toast('Falha de conexão', true);
   }
+  if(btn){ btn.disabled = false; btn.textContent = 'Salvar'; }
+  _salvandoCampo = false;
 }
 
 async function criarProximaLoja(){
