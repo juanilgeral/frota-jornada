@@ -19,7 +19,6 @@
     padding:12px 18px;border-bottom:1px solid var(--line);
     display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
   }
-  header .left{display:flex;align-items:center;gap:12px;}
   header h1{margin:0;font-size:16px;font-weight:700;}
   header h1 span{color:var(--amber);}
   header .role{font-size:12px;color:var(--muted);}
@@ -50,7 +49,7 @@
     background:var(--card);border:1px solid var(--line);border-radius:0 0 12px 12px;
     padding:12px 16px;margin-bottom:16px;
   }
-  .filter-bar input,.filter-bar select{
+  .filter-bar input{
     padding:8px 12px;border-radius:8px;border:1px solid var(--line);
     background:var(--card2);color:var(--text);font-size:13.5px;
   }
@@ -60,10 +59,7 @@
   }
 
   .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;}
-  .stat{
-    background:var(--card);border:1px solid var(--line);border-radius:12px;
-    padding:14px 16px;text-align:center;
-  }
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center;}
   .stat .num{font-size:26px;font-weight:800;line-height:1.1;}
   .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
 
@@ -71,7 +67,7 @@
     background:var(--card);border:1px solid var(--line);border-radius:12px;
     overflow:auto;max-height:calc(100vh - 280px);
   }
-  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1300px;}
   thead{position:sticky;top:0;z-index:5;}
   th{
     background:#1a2433;color:var(--muted);font-weight:700;font-size:11px;
@@ -80,6 +76,8 @@
   }
   td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
   tr:hover td{background:rgba(255,255,255,.03);}
+  tr.grupo-a{background:rgba(255,255,255,.02);}
+  tr.grupo-b{background:rgba(79,156,232,.035);}
   tr:last-child td{border-bottom:none;}
 
   .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;}
@@ -87,40 +85,19 @@
   .badge.almoco,.badge.andamento{background:#3a2f10;color:var(--amber);}
   .badge.trabalhando,.badge.rota{background:#132a3c;color:var(--blue);}
   .badge.em-servico,.badge.retorno{background:#2b1f3a;color:var(--purple);}
+  .badge.muted{background:#2a3746;color:var(--muted);}
 
   .time{font-variant-numeric:tabular-nums;font-weight:600;}
   .empty{color:var(--muted);text-align:center;padding:60px 20px;font-size:14px;}
-
-  .overlay{
-    display:none;position:fixed;inset:0;background:rgba(5,8,12,.78);z-index:40;
-    align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;
-  }
-  .overlay.show{display:flex;}
-  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;
-    max-width:560px;width:100%;padding:20px;margin-top:20px;}
-  .modal h2{margin-top:0;font-size:17px;}
-  .modal .close{float:right;cursor:pointer;color:var(--muted);font-size:22px;line-height:1;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:12px 0;}
-  .grid2 .line{font-size:13px;color:var(--muted);}
-  .grid2 .line b{display:block;color:var(--text);font-size:14.5px;margin-top:2px;}
-  .loja-row{background:var(--card2);border-radius:10px;padding:10px 12px;margin-top:10px;}
-  .loja-row .lh{display:flex;justify-content:space-between;font-weight:700;font-size:13.5px;margin-bottom:6px;}
-
-  @media (max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}}
-  @media (max-width:640px){
-    .stats{grid-template-columns:1fr 1fr;gap:8px;}
-    .wrap{padding:12px 10px 28px;}
-  }
+  .sub-nome{font-weight:500;color:var(--muted);font-size:12.5px;}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="left">
-    <div>
-      <h1>⚙️ Painel <span>Admin</span> · TL</h1>
-      <div class="role">Tele-Rio · Administrador</div>
-    </div>
+  <div>
+    <h1>⚙️ Painel <span>Admin</span> · TL</h1>
+    <div class="role">Tele-Rio · Administrador</div>
   </div>
   <div class="controls">
     <button class="btn" onclick="carregar()">🔄 Sync</button>
@@ -138,13 +115,6 @@
 
   <div class="filter-bar">
     <input type="date" id="fData">
-    <select id="fStatus">
-      <option value="">Todos os status</option>
-      <option value="Em andamento">Em andamento</option>
-      <option value="Em rota / lojas">Em rota / lojas</option>
-      <option value="Retornando ao CD">Retornando ao CD</option>
-      <option value="Concluído">Concluído</option>
-    </select>
     <button class="btn-buscar" onclick="carregar()">Buscar</button>
   </div>
 
@@ -154,27 +124,24 @@
     <table>
       <thead>
         <tr>
-          <th>Placa</th>
-          <th>Motorista</th>
+          <th>Nome</th>
           <th>Operação</th>
           <th>Destino</th>
-          <th>Saída Prog.</th>
-          <th>Situação</th>
-          <th>Km</th>
-          <th>Horas</th>
+          <th>Saída Veíc.</th>
+          <th>Abertura Baú</th>
+          <th>Fechamento Baú</th>
+          <th>Total Loja</th>
+          <th>Chegada CD</th>
+          <th>Km Chegada</th>
+          <th>Horas Viagem</th>
           <th>Status</th>
-          <th>Atualizado</th>
         </tr>
       </thead>
       <tbody id="tbody">
-        <tr><td colspan="10" class="empty">Carregando...</td></tr>
+        <tr><td colspan="11" class="empty">Carregando...</td></tr>
       </tbody>
     </table>
   </div>
-</div>
-
-<div class="overlay" id="overlay">
-  <div class="modal" id="modalBody"></div>
 </div>
 
 <script>
@@ -190,158 +157,130 @@ function hojeISO(){
   const d = new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function formatarDataBR(iso){
-  if(!iso) return '—';
-  const p = String(iso).split('-');
-  if(p.length !== 3) return iso;
-  return `${p[2]}/${p[1]}/${p[0]}`;
-}
 $('#fData').value = hojeISO();
 
-async function apiGet(params){
-  const url = CONFIG.API_URL + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url);
-  return res.json();
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+function normalizarNome(n){
+  return String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
 }
 
-function statusClass(status){
-  const map = {
-    'Em andamento': 'andamento',
-    'Em rota / lojas': 'rota',
-    'Retornando ao CD': 'retorno',
-    'Concluído': 'concluido',
-    'Finalizado': 'finalizado',
-    'Almoço': 'almoco',
-    'Trabalhando': 'trabalhando',
-    'Em serviço': 'em-servico'
-  };
-  return map[status] || 'andamento';
-}
-
-function esc(value){
-  return String(value ?? '').replace(/[&<>"']/g, ch => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[ch]));
+function statusClass(s){
+  const t = String(s||'').toLowerCase();
+  if(t.includes('conclu') || t.includes('finaliz')) return 'concluido';
+  if(t.includes('almo') || t.includes('refei')) return 'almoco';
+  if(t.includes('rota') || t.includes('loja')) return 'rota';
+  if(t.includes('retorno') || t.includes('retorn')) return 'retorno';
+  if(t.includes('trabalh') || t.includes('servi')) return 'trabalhando';
+  return 'andamento';
 }
 
 async function carregar(){
-  const params = {action:'getLancamentos'};
-  if($('#fData').value) params.data = $('#fData').value;
-  if($('#fStatus').value) params.status = $('#fStatus').value;
+  const data = $('#fData').value;
+  if(!data) return;
+
   try{
-    let dados = await apiGet(params);
-    if(!Array.isArray(dados)) dados = [];
-    dados = dados.filter(d => d.Operacao === 'TL');
-    DADOS = dados;
+    const url = CONFIG.API_URL + '?action=getLancamentos&data=' + encodeURIComponent(data);
+    const res = await fetch(url);
+    let lista = await res.json();
+    if(!Array.isArray(lista)) lista = [];
+
+    // Somente operação TL
+    lista = lista.filter(d => (d.Operacao || '').toUpperCase() === 'TL');
+
+    // Agrupa por motorista
+    const mapa = {};
+    lista.forEach(lanc => {
+      const chave = normalizarNome(lanc.Motorista);
+      if(!chave) return;
+      if(!mapa[chave]) mapa[chave] = { nome: lanc.Motorista || chave, viagens: [] };
+
+      const primeira = (lanc.Paradas && lanc.Paradas[0]) || {};
+      mapa[chave].viagens.push({
+        operacao: lanc.Operacao || '',
+        destino: lanc.Destino || '',
+        saidaVeiculo: lanc.HoraProgramadaSaida || lanc.HoraSaida || '',
+        aberturaBau: primeira.HoraAberturaBau || '',
+        fechamentoBau: primeira.HoraFechamentoBau || '',
+        totalLoja: primeira.TotalLoja || '',
+        chegadaCD: lanc.HoraChegadaCD || '',
+        kmChegada: lanc.KmChegada || '',
+        horasViagem: lanc.TotalHorasViagem || '',
+        status: lanc.Status || '—'
+      });
+    });
+
+    // Ordena as viagens de cada motorista pela hora de saída
+    Object.values(mapa).forEach(g => {
+      g.viagens.sort((a,b) => (a.saidaVeiculo||'').localeCompare(b.saidaVeiculo||''));
+    });
+
+    DADOS = Object.values(mapa);
     render();
   }catch(e){
-    $('#tbody').innerHTML = '<tr><td colspan="10" class="empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
+    console.error(e);
+    $('#tbody').innerHTML = '<tr><td colspan="11" class="empty">Falha ao carregar dados. Verifique a conexão.</td></tr>';
   }
 }
 
 function render(){
-  const total = DADOS.length;
-  const emAndamento = DADOS.filter(d => d.Status !== 'Concluído').length;
-  const concluidos = DADOS.filter(d => d.Status === 'Concluído').length;
-  const totalKm = DADOS.reduce((s,d)=> s + (parseFloat(d.TotalKm)||0), 0);
+  const totalViagens = DADOS.reduce((s,g) => s + g.viagens.length, 0);
+  const totalMotoristas = DADOS.length;
+  const concluidos = DADOS.reduce((s,g) => s + g.viagens.filter(v => /conclu|finaliz/i.test(v.status)).length, 0);
+  const emAndamento = totalViagens - concluidos;
 
   $('#stats').innerHTML = `
-    <div class="stat"><div class="num">${total}</div><div class="lbl">Total</div></div>
-    <div class="stat"><div class="num" style="color:var(--amber)">${emAndamento}</div><div class="lbl">Em andamento</div></div>
-    <div class="stat"><div class="num" style="color:var(--green)">${concluidos}</div><div class="lbl">Finalizaram</div></div>
-    <div class="stat"><div class="num">${totalKm ? totalKm.toLocaleString('pt-BR') : '—'}</div><div class="lbl">Km rodados</div></div>
+    <div class="stat"><div class="num">${totalMotoristas}</div><div class="lbl">Motoristas</div></div>
+    <div class="stat"><div class="num" style="color:var(--amber)">${totalViagens}</div><div class="lbl">Viagens TL</div></div>
+    <div class="stat"><div class="num" style="color:var(--blue)">${emAndamento}</div><div class="lbl">Em andamento</div></div>
+    <div class="stat"><div class="num" style="color:var(--green)">${concluidos}</div><div class="lbl">Finalizadas</div></div>
   `;
 
   if(DADOS.length === 0){
-    $('#tbody').innerHTML = '<tr><td colspan="10" class="empty">Nenhum lançamento TL para a data/status selecionados.</td></tr>';
+    $('#tbody').innerHTML = '<tr><td colspan="11" class="empty">Nenhum lançamento TL para esta data.</td></tr>';
     return;
   }
 
-  const ordenados = DADOS.slice().sort((a,b)=>{
-    const aC = a.Status === 'Concluído' ? 1 : 0;
-    const bC = b.Status === 'Concluído' ? 1 : 0;
-    return aC - bC;
+  let html = '';
+  DADOS.forEach((grupo, idxGrupo) => {
+    const classe = idxGrupo % 2 === 0 ? 'grupo-a' : 'grupo-b';
+    const qtd = grupo.viagens.length;
+
+    grupo.viagens.forEach((v, idx) => {
+      const nomeCel = idx === 0
+        ? `<td style="font-weight:600">${esc(grupo.nome)}${qtd > 1 ? ` <span class="badge muted">${qtd} viagens</span>` : ''}</td>`
+        : `<td class="sub-nome">↳ ${idx + 1}ª viagem</td>`;
+
+      html += `<tr class="${classe}">
+        ${nomeCel}
+        <td>${v.operacao ? `<span class="badge rota">${esc(v.operacao)}</span>` : '—'}</td>
+        <td>${esc(v.destino || '—')}</td>
+        <td class="time">${v.saidaVeiculo || '—'}</td>
+        <td class="time">${v.aberturaBau || '—'}</td>
+        <td class="time">${v.fechamentoBau || '—'}</td>
+        <td class="time">${v.totalLoja || '—'}</td>
+        <td class="time">${v.chegadaCD || '—'}</td>
+        <td>${v.kmChegada || '—'}</td>
+        <td class="time">${v.horasViagem || '—'}</td>
+        <td><span class="badge ${statusClass(v.status)}">${esc(v.status)}</span></td>
+      </tr>`;
+    });
   });
 
-  $('#tbody').innerHTML = ordenados.map(d => {
-    const paradas = d.Paradas || [];
-    const lojaAtual = paradas.find(p => p.HoraChegada && !p.HoraSaida);
-    const situacao = lojaAtual
-      ? `Na loja ${lojaAtual.NumeroLoja}`
-      : (paradas.length ? `${paradas.filter(p=>p.HoraSaida).length}/${paradas.length} lojas` : '—');
-
-    return `
-      <tr onclick="abrirDetalhe('${esc(d.ID)}')" style="cursor:pointer">
-        <td><b>${esc(d.Placa || '—')}</b></td>
-        <td>${esc(d.Motorista || '—')}</td>
-        <td>${esc(d.Operacao || '—')}</td>
-        <td>${esc(d.Destino || '—')}</td>
-        <td class="time">${d.HoraProgramadaSaida || '—'}</td>
-        <td>${esc(situacao)}</td>
-        <td>${d.TotalKm || '—'}</td>
-        <td class="time">${d.TotalHorasViagem || '—'}</td>
-        <td><span class="badge ${statusClass(d.Status)}">${esc(d.Status || '—')}</span></td>
-        <td style="color:var(--muted);font-size:12px">${d.UltimaAtualizacao || '—'}</td>
-      </tr>
-    `;
-  }).join('');
+  $('#tbody').innerHTML = html;
 }
-
-function abrirDetalhe(id){
-  const d = DADOS.find(x => x.ID === id);
-  if(!d) return;
-  const cls = statusClass(d.Status);
-  const paradas = d.Paradas || [];
-  $('#modalBody').innerHTML = `
-    <span class="close" onclick="fecharDetalhe()">&times;</span>
-    <h2>${esc(d.Placa)} <span class="badge ${cls}" style="margin-left:8px">${esc(d.Status)}</span></h2>
-    <div class="grid2">
-      <div class="line">Motorista<b>${esc(d.Motorista || '—')}</b></div>
-      <div class="line">Operação<b>${esc(d.Operacao || '—')}</b></div>
-      <div class="line">Destino<b>${esc(d.Destino || '—')}</b></div>
-      <div class="line">Data<b>${formatarDataBR(d.Data)}</b></div>
-      <div class="line">Saída programada<b>${d.HoraProgramadaSaida || '—'}</b></div>
-      <div class="line">Km saída<b>${d.KmSaida || '—'}</b></div>
-      <div class="line">Km chegada<b>${d.KmChegada || '—'}</b></div>
-      <div class="line">Total Km<b>${d.TotalKm || '—'}</b></div>
-      <div class="line">Chegada no CD<b>${d.HoraChegadaCD || '—'}</b></div>
-      <div class="line">Total horas da viagem<b>${d.TotalHorasViagem || '—'}</b></div>
-      <div class="line">Total horas nas lojas<b>${d.TotalHorasLojas || '—'}</b></div>
-      <div class="line">Última atualização<b>${d.UltimaAtualizacao || '—'}</b></div>
-    </div>
-    <div style="font-weight:700;font-size:13.5px;margin-top:14px;color:var(--amber)">LOJAS</div>
-    ${paradas.length === 0 ? '<div style="color:var(--muted);font-size:13px;margin-top:6px">Nenhuma loja registrada ainda.</div>' :
-      paradas.map(p => `
-        <div class="loja-row">
-          <div class="lh"><span>Loja ${p.NumeroLoja}</span><span style="color:var(--green)">${p.TotalLoja || ''}</span></div>
-          <div class="grid2" style="margin:0">
-            <div class="line">Chegada<b>${p.HoraChegada || '—'}</b></div>
-            <div class="line">Saída<b>${p.HoraSaida || '—'}</b></div>
-            <div class="line">Abertura baú<b>${p.HoraAberturaBau || '—'}</b></div>
-            <div class="line">Fechamento baú<b>${p.HoraFechamentoBau || '—'}</b></div>
-          </div>
-        </div>
-      `).join('')
-    }
-  `;
-  $('#overlay').classList.add('show');
-}
-function fecharDetalhe(){ $('#overlay').classList.remove('show'); }
-$('#overlay').addEventListener('click', (e)=>{ if(e.target.id === 'overlay') fecharDetalhe(); });
 
 function limparFiltros(){
   $('#fData').value = hojeISO();
-  $('#fStatus').value = '';
   carregar();
 }
 
 $('#fData').addEventListener('change', carregar);
-$('#fStatus').addEventListener('change', carregar);
 
-let secsLeft = REFRESH_MS/1000;
-setInterval(()=>{
+let secsLeft = REFRESH_MS / 1000;
+setInterval(() => {
   secsLeft--;
-  if(secsLeft <= 0){ secsLeft = REFRESH_MS/1000; carregar(); }
+  if(secsLeft <= 0){ secsLeft = REFRESH_MS / 1000; carregar(); }
   $('#secs').textContent = secsLeft;
 }, 1000);
 
