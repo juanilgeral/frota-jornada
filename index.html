@@ -291,7 +291,7 @@ function renderInicio(){
       <div class="total" style="margin:0"><span>Data da jornada</span><b>${formatarDataBR(hojeISO())}</b></div>
 
       <label>Hora de saída do veículo:</label>
-      <input type="time" id="fHoraProgSaida">
+      <input type="time" id="fHoraProgSaida" value="${agoraHHMM()}">
 
       <label>Operação</label>
       <div class="opgrid" id="opGrid">
@@ -552,7 +552,7 @@ function renderAndamento(){
       ${LANC.TotalHorasViagem ? `<div class="summary-line"><span>Total horas da viagem</span><b>${LANC.TotalHorasViagem}</b></div>` : ''}
       ${LANC.TotalHorasLojas ? `<div class="summary-line"><span>Total horas nas lojas</span><b>${LANC.TotalHorasLojas}</b></div>` : ''}
       <label style="margin-top:14px">Hora de saída do veículo${!LANC.HoraProgramadaSaida ? ' <span style="color:var(--red)">(faltando)</span>' : ''}</label>
-      <input type="time" id="fHoraSaidaVeiculo" value="${LANC.HoraProgramadaSaida || ''}">
+      <input type="time" id="fHoraSaidaVeiculo" value="${LANC.HoraProgramadaSaida || agoraHHMM()}">
       <div class="placa-hint" id="status_horasaida">${LANC.HoraProgramadaSaida ? 'Salvo ✓' : 'Esqueceu de lançar — preencha aqui, salva sozinho ao sair do campo.'}</div>
     </div>
   `;
@@ -605,7 +605,7 @@ function renderAndamento(){
       <div class="card">
         <h2><span class="n">3</span> Retorno ao CD</h2>
         <label>Hora de chegada do veículo no CD</label>
-        <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || ''}">
+        <input type="time" id="fHoraCD" value="${LANC.HoraChegadaCD || agoraHHMM()}">
         <div class="row2">
           <div><label>Data chegada do motorista</label><input type="date" id="fDataChegada" value="${LANC.DataChegadaMotorista || hojeISO()}"></div>
           <div><label>Km de chegada</label><input type="number" inputmode="numeric" id="fKmChegada" value="${LANC.KmChegada || ''}"></div>
@@ -686,7 +686,7 @@ function renderLojaAtiva(p, numero){
   });
   if(proximo){
     const [campo, idSuf, label] = proximo;
-    html += `<label>${label}</label><input type="time" id="p_${p.ID}_${idSuf}" data-parada="${p.ID}" data-campo="${campo}">`;
+    html += `<label>${label}</label><input type="time" id="p_${p.ID}_${idSuf}" data-parada="${p.ID}" data-campo="${campo}" value="${agoraHHMM()}">`;
     html += `<div class="placa-hint" id="status_${p.ID}">Preenche esse campo — o próximo libera sozinho.</div>`;
   }
   html += `</div>`;
