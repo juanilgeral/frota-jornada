@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frota Jornada — Tele-Rio (TL)</title>
+<style>
+  :root{
+    --bg:#0f1620; --card:#16202c; --card2:#1c2836; --line:#2a3746;
+    --text:#e8edf3; --muted:#b7c4d1; --amber:#f2a93b; --green:#3fbb78;
+    --blue:#4f9ce8; --purple:#b18ef0; --red:#e5615f; --orange:#f97316;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+  
+  header{
+    position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#101822,#0f1620 92%);
+    padding:12px 18px;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+  }
+  header h1{margin:0;font-size:16px;font-weight:700;}
+  header h1 span{color:var(--amber);}
+  header .role{font-size:12px;color:var(--muted);}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .btn{
+    padding:7px 14px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card2);color:var(--text);font-size:13px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;font-weight:600;
+  }
+  .btn:hover{border-color:var(--amber);}
+  .btn.danger{background:#3a1f1f;border-color:#5c2b2b;color:#f87171;}
+  .live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.3;}100%{opacity:1;}}
+
+  .wrap{width:100%;padding:16px clamp(12px,2.5vw,32px) 40px;}
+
+  .tabs{display:flex;gap:0;margin-bottom:16px;}
+  .tab{
+    flex:1;text-align:center;padding:12px 16px;font-weight:700;font-size:14px;
+    border-radius:10px 10px 0 0;cursor:pointer;border:1px solid var(--line);
+    background:var(--card);color:var(--muted);
+  }
+  .tab.active{background:var(--orange);color:#fff;border-color:var(--orange);}
+
+  .filter-bar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:0 0 12px 12px;
+    padding:12px 16px;margin-bottom:16px;
+  }
+  .filter-bar input{
+    padding:8px 12px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card2);color:var(--text);font-size:13.5px;
+  }
+  .filter-bar .btn-buscar{
+    padding:8px 18px;border-radius:8px;border:none;
+    background:var(--orange);color:#fff;font-weight:700;cursor:pointer;font-size:13.5px;
+  }
+
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center;}
+  .stat .num{font-size:26px;font-weight:800;line-height:1.1;}
+  .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+
+  .table-wrap{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    overflow:auto;max-height:calc(100vh - 280px);
+  }
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1200px;}
+  thead{position:sticky;top:0;z-index:5;}
+  th{
+    background:#1a2433;color:var(--muted);font-weight:700;font-size:11px;
+    text-transform:uppercase;letter-spacing:.4px;padding:11px 10px;
+    text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+  tr:hover td{background:rgba(255,255,255,.03);}
+  tr.grupo-a{background:rgba(255,255,255,.02);}
+  tr.grupo-b{background:rgba(79,156,232,.035);}
+  tr:last-child td{border-bottom:none;}
+
+  .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;}
+  .badge.finalizado,.badge.concluido{background:#12301f;color:var(--green);}
+  .badge.almoco,.badge.andamento{background:#3a2f10;color:var(--amber);}
+  .badge.trabalhando,.badge.rota{background:#132a3c;color:var(--blue);}
+  .badge.em-servico,.badge.retorno{background:#2b1f3a;color:var(--purple);}
+  .badge.muted{background:#2a3746;color:var(--muted);}
+
+  .time{font-variant-numeric:tabular-nums;font-weight:600;}
+  .empty{color:var(--muted);text-align:center;padding:60px 20px;font-size:14px;}
+  .sub-nome{font-weight:500;color:var(--muted);font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚙️ Painel <span>Admin</span> · TL</h1>
+    <div class="role">Tele-Rio · Administrador</div>
+  </div>
+  <div class="controls">
+    <button class="btn" onclick="carregar()">🔄 Sync</button>
+    <button class="btn" onclick="window.open('https://juanilgeral.github.io/jornada/','_blank')">🚚 Frota Jornada</button>
+    <button class="btn danger" onclick="limparFiltros()">🗑️ Limpar</button>
+    <div class="live"><span class="dot"></span> atualiza em <span id="secs">15</span>s</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active">📋 Registros do Dia</div>
+    <div class="tab" style="opacity:.5;cursor:default;">📊 Horas Extras</div>
+  </div>
+
+  <div class="filter-bar">
+    <input type="date" id="fData">
+    <button class="btn-buscar" onclick="carregar()">Buscar</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Placa</th>
+          <th>Operação</th>
+          <th>Destino</th>
+          <th>Saída Veíc.</th>
+          <th>Chegada Loja</th>
+          <th>Abertura Baú</th>
+          <th>Fechamento Baú</th>
+          <th>Saída Loja</th>
+          <th>Total Loja</th>
+          <th>Chegada CD</th>
+          <th>Km Chegada</th>
+          <th>Horas Viagem</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="14" class="empty">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec'
+};
+const REFRESH_MS = 15000;
+let DADOS = [];
+
+const $ = s => document.querySelector(s);
+
+function hojeISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+$('#fData').value = hojeISO();
+
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+function normalizarNome(n){
+  return String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+}
+
+function statusClass(s){
+  const t = String(s||'').toLowerCase();
+  if(t.includes('conclu') || t.includes('finaliz')) return 'concluido';
+  if(t.includes('almo') || t.includes('refei')) return 'almoco';
+  if(t.includes('rota') || t.includes('loja')) return 'rota';
+  if(t.includes('retorno') || t.includes('retorn')) return 'retorno';
+  if(t.includes('trabalh') || t.includes('servi')) return 'trabalhando';
+  return 'andamento';
+}
+
+async function carregar(){
+  const data = $('#fData').value;
+  if(!data) return;
+
+  try{
+    const url = CONFIG.API_URL + '?action=getLancamentos&data=' + encodeURIComponent(data);
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    let lista = await res.json();
+    if(!Array.isArray(lista)) lista = [];
+
+    // Somente operação TL
+    lista = lista.filter(d => (d.Operacao || '').toUpperCase() === 'TL');
+
+    // Agrupa por motorista
+    const mapa = {};
+    lista.forEach(lanc => {
+      const chave = normalizarNome(lanc.Motorista);
+      if(!chave) return;
+      if(!mapa[chave]) mapa[chave] = { nome: lanc.Motorista || chave, viagens: [] };
+
+      const primeira = (lanc.Paradas && lanc.Paradas[0]) || {};
+      mapa[chave].viagens.push({
+        placa: lanc.Placa || '',
+        operacao: lanc.Operacao || '',
+        destino: lanc.Destino || '',
+        saidaVeiculo: lanc.HoraProgramadaSaida || lanc.HoraSaida || '',
+        chegadaLoja: primeira.HoraChegada || '',
+        aberturaBau: primeira.HoraAberturaBau || '',
+        fechamentoBau: primeira.HoraFechamentoBau || '',
+        saidaLoja: primeira.HoraSaida || '',
+        totalLoja: primeira.TotalLoja || '',
+        chegadaCD: lanc.HoraChegadaCD || '',
+        kmChegada: lanc.KmChegada || '',
+        horasViagem: lanc.TotalHorasViagem || '',
+        status: lanc.Status || '—'
+      });
+    });
+
+    // Ordena as viagens de cada motorista pela hora de saída
+    Object.values(mapa).forEach(g => {
+      g.viagens.sort((a,b) => (a.saidaVeiculo||'').localeCompare(b.saidaVeiculo||''));
+    });
+
+    DADOS = Object.values(mapa).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    render();
+  }catch(e){
+    console.error(e);
+    $('#tbody').innerHTML = '<tr><td colspan="14" class="empty">Falha ao carregar dados. Verifique a conexão e a URL do Apps Script.</td></tr>';
+  }
+}
+
+function render(){
+  const totalViagens = DADOS.reduce((s,g) => s + g.viagens.length, 0);
+  const totalMotoristas = DADOS.length;
+  const concluidos = DADOS.reduce((s,g) => s + g.viagens.filter(v => /conclu|finaliz/i.test(v.status)).length, 0);
+  const emAndamento = totalViagens - concluidos;
+
+  $('#stats').innerHTML = `
+    <div class="stat"><div class="num">${totalMotoristas}</div><div class="lbl">Motoristas</div></div>
+    <div class="stat"><div class="num" style="color:var(--amber)">${totalViagens}</div><div class="lbl">Viagens TL</div></div>
+    <div class="stat"><div class="num" style="color:var(--blue)">${emAndamento}</div><div class="lbl">Em andamento</div></div>
+    <div class="stat"><div class="num" style="color:var(--green)">${concluidos}</div><div class="lbl">Finalizadas</div></div>
+  `;
+
+  if(DADOS.length === 0){
+    $('#tbody').innerHTML = '<tr><td colspan="14" class="empty">Nenhum lançamento TL para esta data.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  DADOS.forEach((grupo, idxGrupo) => {
+    const classe = idxGrupo % 2 === 0 ? 'grupo-a' : 'grupo-b';
+    const qtd = grupo.viagens.length;
+
+    grupo.viagens.forEach((v, idx) => {
+      const nomeCel = idx === 0
+        ? `<td style="font-weight:600">${esc(grupo.nome)}${qtd > 1 ? ` <span class="badge muted">${qtd} viagens</span>` : ''}</td>`
+        : `<td class="sub-nome">↳ ${idx + 1}ª viagem</td>`;
+
+      html += `<tr class="${classe}">
+        ${nomeCel}
+        <td style="font-weight:700;letter-spacing:.3px">${esc(v.placa || '—')}</td>
+        <td>${v.operacao ? `<span class="badge rota">${esc(v.operacao)}</span>` : '—'}</td>
+        <td>${esc(v.destino || '—')}</td>
+        <td class="time">${v.saidaVeiculo || '—'}</td>
+        <td class="time">${v.chegadaLoja || '—'}</td>
+        <td class="time">${v.aberturaBau || '—'}</td>
+        <td class="time">${v.fechamentoBau || '—'}</td>
+        <td class="time">${v.saidaLoja || '—'}</td>
+        <td class="time">${v.totalLoja || '—'}</td>
+        <td class="time">${v.chegadaCD || '—'}</td>
+        <td>${v.kmChegada || '—'}</td>
+        <td class="time">${v.horasViagem || '—'}</td>
+        <td><span class="badge ${statusClass(v.status)}">${esc(v.status)}</span></td>
+      </tr>`;
+    });
+  });
+
+  $('#tbody').innerHTML = html;
+}
+
+function limparFiltros(){
+  $('#fData').value = hojeISO();
+  carregar();
+}
+
+$('#fData').addEventListener('change', carregar);
+
+let secsLeft = REFRESH_MS / 1000;
+setInterval(() => {
+  secsLeft--;
+  if(secsLeft <= 0){ secsLeft = REFRESH_MS / 1000; carregar(); }
+  $('#secs').textContent = secsLeft;
+}, 1000);
+
+carregar();
+</script>
+</body>
+</html>

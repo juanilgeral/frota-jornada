@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0f1e">
+<title>Frota Jornada — Painel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2234;
+    --border: #1f2d45;
+    --accent: #00d4aa;
+    --accent2: #0066ff;
+    --warn: #ff6b35;
+    --text: #e8edf5;
+    --muted: #5a6a82;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .admin-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .admin-header h2 span { color: var(--warn); }
+  .admin-header p {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .admin-sync-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+  }
+  .admin-sync-wrap > div {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .btn-sync, .btn-logout {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-sync:hover, .btn-logout:hover { color: var(--text); border-color: var(--warn); }
+  .btn-logout.danger { color: var(--red); border-color: rgba(239,68,68,0.4); }
+  .refresh-badge {
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+  .refresh-badge .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 4px;
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .admin-body {
+    padding: 1rem 1.25rem 2rem;
+    max-width: 100%;
+  }
+
+  .admin-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+  }
+  .admin-tab {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 0.7rem 0.5rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .admin-tab.active {
+    background: var(--warn);
+    color: #fff;
+    border-color: var(--warn);
+  }
+  .admin-tab:not(.active) { opacity: 0.55; cursor: default; }
+
+  .admin-date-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0 0 12px 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+  }
+  .admin-date-row input,
+  .admin-date-row select {
+    flex: 1;
+    min-width: 120px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 0.85rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .admin-date-row select {
+    flex: 0 1 150px;
+    cursor: pointer;
+  }
+  .btn-buscar {
+    background: var(--warn);
+    border: none;
+    border-radius: 10px;
+    padding: 0.6rem 1.1rem;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .btn-buscar:hover { filter: brightness(1.08); }
+
+  .admin-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 0.5rem;
+    text-align: center;
+  }
+  .stat-box .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+  .stat-box .stat-label {
+    font-size: 0.6rem;
+    color: #c8a96e;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 3px;
+  }
+
+  .admin-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    max-height: calc(100vh - 280px);
+  }
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    min-width: 1400px;
+  }
+  .admin-table thead { position: sticky; top: 0; z-index: 5; }
+  .admin-table th {
+    background: var(--surface2);
+    color: #c8a96e;
+    padding: 0.55rem 0.7rem;
+    text-align: left;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-table td {
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: rgba(255,255,255,0.03); }
+  .admin-empty {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  #admin-tbody tr.grupo-a { background: rgba(255,255,255,0.02); }
+  #admin-tbody tr.grupo-b { background: rgba(0,102,255,0.035); }
+
+  .pill {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+  .pill-green  { background: rgba(34,197,94,0.15); color: var(--green); }
+  .pill-yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .pill-blue   { background: rgba(0,102,255,0.15); color: #7eb3ff; }
+  .pill-red    { background: rgba(239,68,68,0.15); color: var(--red); }
+  .pill-muted  { background: rgba(90,106,130,0.15); color: var(--muted); }
+  .pill-purple { background: rgba(177,142,240,0.15); color: #b18ef0; }
+
+  .time { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .sub-nome { font-weight: 500; color: var(--muted); font-size: 0.78rem; }
+
+  @media (max-width: 700px) {
+    .admin-stats { grid-template-columns: repeat(2, 1fr); }
+    .admin-header { padding: 0.85rem 1rem; }
+    .admin-body { padding: 0.85rem 1rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="admin-header">
+  <div>
+    <h2>⚙️ Painel <span>Admin</span></h2>
+    <p>Frota Jornada · Administrador</p>
+  </div>
+  <div class="admin-sync-wrap">
+    <div>
+      <button class="btn-sync" onclick="carregar()">🔄 Sync</button>
+      <button class="btn-logout" onclick="window.open('https://juanilgeral.github.io/jornada/','_blank')">🚚 Jornada</button>
+      <button class="btn-logout danger" onclick="limparFiltros()">🗑️ Limpar</button>
+    </div>
+    <div class="refresh-badge"><span class="dot"></span>atualiza em <span id="secs">15</span>s</div>
+  </div>
+</div>
+
+<div class="admin-body">
+  <div class="admin-tabs">
+    <button class="admin-tab active" id="tab-dia" onclick="mudarAba('dia')">📋 Registros do Dia</button>
+    <button class="admin-tab" id="tab-semana" onclick="mudarAba('semana')" style="opacity:.5;cursor:default;" title="Em breve">📊 Horas Extras</button>
+  </div>
+
+  <div id="painel-dia">
+    <div class="admin-date-row">
+      <input type="date" id="admin-data" />
+      <select id="admin-filtro-op" onchange="render()">
+        <option value="">Todas operações</option>
+        <option value="LS">LS</option>
+        <option value="TL">TL</option>
+        <option value="HT">HT</option>
+        <option value="CV">CV</option>
+        <option value="__SEM__">Sem operação</option>
+        <option value="__OUTRAS__">Outras</option>
+      </select>
+      <button class="btn-buscar" onclick="carregar()">Buscar</button>
+    </div>
+
+    <div class="admin-stats">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-total" style="color:var(--text)">—</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-iniciados" style="color:var(--green)">—</div>
+        <div class="stat-label">Iniciaram</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-almoco" style="color:var(--yellow)">—</div>
+        <div class="stat-label">Almoço</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-finalizados" style="color:var(--red)">—</div>
+        <div class="stat-label">Finalizaram</div>
+      </div>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Placa</th>
+            <th>Início</th>
+            <th>Operação</th>
+            <th>Destino</th>
+            <th>Saída Veíc.</th>
+            <th>Chegada Loja</th>
+            <th>Abertura Baú</th>
+            <th>Fechamento Baú</th>
+            <th>Saída Loja</th>
+            <th>Total Loja</th>
+            <th>Parada</th>
+            <th>Retorno</th>
+            <th>Chegada CD</th>
+            <th>Km Chegada</th>
+            <th>Fim</th>
+            <th>Trabalhado</th>
+            <th>Extra</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="admin-tbody">
+          <tr><td colspan="19" class="admin-empty">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="painel-semana" style="display:none;">
+    <div class="admin-empty" style="padding:3rem;">Módulo de Horas Extras em breve.</div>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec'
+};
+const REFRESH_MS = 15000;
+const OPS_PADRAO = ['LS', 'TL', 'HT', 'CV'];
+
+let DADOS = [];
+
+const $ = s => document.querySelector(s);
+
+function hojeISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+$('#admin-data').value = hojeISO();
+
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function normalizarNome(n) {
+  return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+}
+
+function operacaoPassaFiltro(op, filtro) {
+  const o = String(op || '').trim().toUpperCase();
+  if (!filtro) return true;
+  if (filtro === '__SEM__') return !o;
+  if (filtro === '__OUTRAS__') return o && !OPS_PADRAO.includes(o);
+  return o === String(filtro).toUpperCase();
+}
+
+function statusInfo(status) {
+  const t = String(status || '').toLowerCase();
+  if (t.includes('conclu') || t.includes('finaliz')) return { label: 'Finalizado', cls: 'pill-red' };
+  if (t.includes('almo') || t.includes('refei')) return { label: 'Almoço', cls: 'pill-yellow' };
+  if (t.includes('retorno') || t.includes('retorn')) return { label: 'Trabalhando', cls: 'pill-green' };
+  if (t.includes('rota') || t.includes('loja')) return { label: 'Em serviço', cls: 'pill-blue' };
+  if (t.includes('andament') || t.includes('servi') || t.includes('trabalh')) return { label: 'Em serviço', cls: 'pill-blue' };
+  return { label: status || '—', cls: 'pill-muted' };
+}
+
+function operacaoClass(op) {
+  const o = String(op || '').trim().toUpperCase();
+  if (o === 'TL') return 'pill-green';   // verde
+  if (o === 'HT') return 'pill-blue';    // azul
+  if (o === 'CV') return 'pill-yellow';  // amarelo
+  if (o === 'LS') return 'pill-red';     // vermelho
+  return 'pill-muted';
+}
+
+async function carregar() {
+  const data = $('#admin-data').value;
+  if (!data) return;
+
+  try {
+    const url = CONFIG.API_URL + '?action=getLancamentos&data=' + encodeURIComponent(data);
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    let lista = await res.json();
+    if (!Array.isArray(lista)) lista = [];
+
+    const mapa = {};
+    lista.forEach(lanc => {
+      const chave = normalizarNome(lanc.Motorista);
+      if (!chave) return;
+      if (!mapa[chave]) mapa[chave] = { nome: lanc.Motorista || chave, viagens: [] };
+
+      const primeira = (lanc.Paradas && lanc.Paradas[0]) || {};
+      mapa[chave].viagens.push({
+        placa: lanc.Placa || '',
+        operacao: lanc.Operacao || '',
+        destino: lanc.Destino || '',
+        saidaVeiculo: lanc.HoraProgramadaSaida || lanc.HoraSaida || '',
+        chegadaLoja: primeira.HoraChegada || '',
+        aberturaBau: primeira.HoraAberturaBau || '',
+        fechamentoBau: primeira.HoraFechamentoBau || '',
+        saidaLoja: primeira.HoraSaida || '',
+        totalLoja: primeira.TotalLoja || '',
+        chegadaCD: lanc.HoraChegadaCD || '',
+        kmChegada: lanc.KmChegada || '',
+        horasViagem: lanc.TotalHorasViagem || '',
+        status: lanc.Status || '—'
+      });
+    });
+
+    Object.values(mapa).forEach(g => {
+      g.viagens.sort((a, b) => (a.saidaVeiculo || '').localeCompare(b.saidaVeiculo || ''));
+    });
+
+    DADOS = Object.values(mapa).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    render();
+  } catch (e) {
+    console.error(e);
+    $('#admin-tbody').innerHTML = '<tr><td colspan="19" class="admin-empty">Falha ao carregar dados. Verifique a conexão e a URL do Apps Script.</td></tr>';
+    ['stat-total', 'stat-iniciados', 'stat-almoco', 'stat-finalizados'].forEach(id => {
+      document.getElementById(id).textContent = '0';
+    });
+  }
+}
+
+function render() {
+  const filtroOp = ($('#admin-filtro-op') || {}).value || '';
+  const vazio = '<span style="color:var(--muted)">—</span>';
+  const tbody = $('#admin-tbody');
+
+  let totalMotoristas = 0;
+  let iniciados = 0;
+  let almoco = 0;
+  let finalizados = 0;
+  let linhas = '';
+  let idxGrupo = 0;
+
+  DADOS.forEach(grupo => {
+    const viagens = filtroOp
+      ? grupo.viagens.filter(v => operacaoPassaFiltro(v.operacao, filtroOp))
+      : grupo.viagens;
+    if (!viagens.length) return;
+
+    totalMotoristas++;
+    const temFinalizado = viagens.some(v => /conclu|finaliz/i.test(v.status));
+    const temAlmoco = viagens.some(v => /almo|refei/i.test(v.status));
+    if (temFinalizado) finalizados++;
+    else if (temAlmoco) almoco++;
+    else iniciados++;
+
+    const classe = idxGrupo % 2 === 0 ? 'grupo-a' : 'grupo-b';
+    idxGrupo++;
+    const qtd = viagens.length;
+
+    viagens.forEach((v, idx) => {
+      const st = statusInfo(v.status);
+      const nomeCel = idx === 0
+        ? `<td style="font-weight:600">${esc(grupo.nome)}${qtd > 1 ? ` <span class="pill pill-muted" style="font-size:0.62rem">${qtd} viagens</span>` : ''}</td>`
+        : `<td class="sub-nome">↳ ${idx + 1}ª viagem</td>`;
+
+      linhas += `<tr class="${classe}">
+        ${nomeCel}
+        <td style="font-weight:700;letter-spacing:.3px">${esc(v.placa || '—')}</td>
+        <td>${vazio}</td>
+        <td>${v.operacao ? `<span class="pill ${operacaoClass(v.operacao)}">${esc(v.operacao)}</span>` : vazio}</td>
+        <td>${esc(v.destino || '—')}</td>
+        <td class="time">${v.saidaVeiculo || vazio}</td>
+        <td class="time">${v.chegadaLoja || vazio}</td>
+        <td class="time">${v.aberturaBau || vazio}</td>
+        <td class="time">${v.fechamentoBau || vazio}</td>
+        <td class="time">${v.saidaLoja || vazio}</td>
+        <td class="time">${v.totalLoja || vazio}</td>
+        <td>${vazio}</td>
+        <td>${vazio}</td>
+        <td class="time">${v.chegadaCD || vazio}</td>
+        <td>${v.kmChegada || vazio}</td>
+        <td>${vazio}</td>
+        <td class="time">${v.horasViagem || vazio}</td>
+        <td>${vazio}</td>
+        <td><span class="pill ${st.cls}">${esc(st.label)}</span></td>
+      </tr>`;
+    });
+  });
+
+  if (!linhas) {
+    const msg = filtroOp
+      ? 'Nenhum registro para a operação selecionada nesta data'
+      : 'Nenhum registro encontrado para esta data';
+    tbody.innerHTML = `<tr><td colspan="19" class="admin-empty">${msg}</td></tr>`;
+    document.getElementById('stat-total').textContent = '0';
+    document.getElementById('stat-iniciados').textContent = '0';
+    document.getElementById('stat-almoco').textContent = '0';
+    document.getElementById('stat-finalizados').textContent = '0';
+    return;
+  }
+
+  tbody.innerHTML = linhas;
+  document.getElementById('stat-total').textContent = totalMotoristas;
+  document.getElementById('stat-iniciados').textContent = iniciados;
+  document.getElementById('stat-almoco').textContent = almoco;
+  document.getElementById('stat-finalizados').textContent = finalizados;
+}
+
+function mudarAba(aba) {
+  if (aba === 'semana') return;
+  document.getElementById('painel-dia').style.display = 'block';
+  document.getElementById('painel-semana').style.display = 'none';
+  document.getElementById('tab-dia').classList.add('active');
+  document.getElementById('tab-semana').classList.remove('active');
+}
+
+function limparFiltros() {
+  $('#admin-data').value = hojeISO();
+  $('#admin-filtro-op').value = '';
+  carregar();
+}
+
+$('#admin-data').addEventListener('change', carregar);
+
+let secsLeft = REFRESH_MS / 1000;
+setInterval(() => {
+  secsLeft--;
+  if (secsLeft <= 0) {
+    secsLeft = REFRESH_MS / 1000;
+    carregar();
+  }
+  const el = document.getElementById('secs');
+  if (el) el.textContent = secsLeft;
+}, 1000);
+
+carregar();
+</script>
+</body>
+</html>
