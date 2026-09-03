@@ -202,7 +202,7 @@
   }
 
   .admin-table-wrap {
-    overflow-x: auto;
+    overflow: auto;
     border-radius: 12px;
     border: 1px solid var(--border);
     background: var(--surface);
@@ -210,7 +210,8 @@
   }
   .admin-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.75rem;
     min-width: 1400px;
   }
@@ -235,6 +236,39 @@
   }
   .admin-table tr:last-child td { border-bottom: none; }
   .admin-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+  /* Congela Nome (1ª coluna) e Placa (2ª coluna) na horizontal */
+  .admin-table th:nth-child(1),
+  .admin-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    min-width: 160px;
+    max-width: 220px;
+    background: var(--surface);
+    box-shadow: 2px 0 4px rgba(0,0,0,0.25);
+  }
+  .admin-table th:nth-child(2),
+  .admin-table td:nth-child(2) {
+    position: sticky;
+    left: 160px;
+    z-index: 2;
+    min-width: 100px;
+    background: var(--surface);
+    box-shadow: 2px 0 4px rgba(0,0,0,0.25);
+  }
+  .admin-table thead th:nth-child(1),
+  .admin-table thead th:nth-child(2) {
+    z-index: 6;
+    background: var(--surface2);
+  }
+  #admin-tbody tr.grupo-a td:nth-child(1),
+  #admin-tbody tr.grupo-a td:nth-child(2) { background: #121a28; }
+  #admin-tbody tr.grupo-b td:nth-child(1),
+  #admin-tbody tr.grupo-b td:nth-child(2) { background: #111f33; }
+  #admin-tbody tr:hover td:nth-child(1),
+  #admin-tbody tr:hover td:nth-child(2) { background: #1a2433; }
+
   .admin-empty {
     text-align: center;
     padding: 2.5rem;
@@ -444,6 +478,8 @@ async function carregar() {
         fechamentoBau: primeira.HoraFechamentoBau || '',
         saidaLoja: primeira.HoraSaida || '',
         totalLoja: primeira.TotalLoja || '',
+        parada: lanc.HoraParada || lanc.InicioAlmoco || lanc.HoraInicioAlmoco || lanc.Parada || '',
+        retorno: lanc.HoraRetorno || lanc.FimAlmoco || lanc.HoraFimAlmoco || lanc.Retorno || '',
         chegadaCD: lanc.HoraChegadaCD || '',
         kmChegada: lanc.KmChegada || '',
         horasViagem: lanc.TotalHorasViagem || '',
@@ -513,8 +549,8 @@ function render() {
         <td class="time">${v.fechamentoBau || vazio}</td>
         <td class="time">${v.saidaLoja || vazio}</td>
         <td class="time">${v.totalLoja || vazio}</td>
-        <td>${vazio}</td>
-        <td>${vazio}</td>
+        <td class="time">${v.parada ? `<span class="pill pill-yellow">${esc(v.parada)}</span>` : vazio}</td>
+        <td class="time">${v.retorno ? `<span class="pill pill-blue">${esc(v.retorno)}</span>` : vazio}</td>
         <td class="time">${v.chegadaCD || vazio}</td>
         <td>${v.kmChegada || vazio}</td>
         <td>${vazio}</td>
