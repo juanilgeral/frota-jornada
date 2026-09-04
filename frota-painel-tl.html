@@ -151,8 +151,16 @@
 
 <script>
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec'
+  /* API da Frota Jornada (viagens / lojas) */
+  API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec',
+  /*
+   * API do app Jornada (ponto / almoço).
+   * Cole aqui a MESMA URL do Apps Script configurada no app Jornada.
+   * Se deixar vazio, tenta usar a URL salva no navegador (localStorage do app Jornada).
+   */
+  JORNADA_API_URL: 'https://script.google.com/macros/s/AKfycbxrwfM5xkgod6aCg7PEiJbXys2iHMtgwqyJQhKvGBnZTbutBZPZkI4bTXcCruDaTYW4/exec'
 };
+const SCRIPT_URL_KEY = 'jornadatrack_script_url';
 const REFRESH_MS = 15000;
 let DADOS = [];
 
@@ -167,7 +175,11 @@ $('#fData').value = hojeISO();
 function esc(v){ return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
 function normalizarNome(n){
-  return String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+  return String(n||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
 }
 
 function statusClass(s){
@@ -180,13 +192,46 @@ function statusClass(s){
   return 'andamento';
 }
 
+function urlPontoJornada(){
+  const cfg = (CONFIG.JORNADA_API_URL || '').trim();
+  if(cfg) return cfg;
+  return (localStorage.getItem(SCRIPT_URL_KEY) || '').trim();
+}
+
+/** Busca resumo de ponto do dia (inicio, parada/almoço, retorno, fim) no app Jornada. */
+async function buscarPontoDoDia(dataISO){
+  const base = urlPontoJornada();
+  if(!base || !dataISO) return {};
+  try{
+    let dataBR = String(dataISO).trim();
+    const m = dataBR.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(m) dataBR = `${m[3]}/${m[2]}/${m[1]}`;
+    const resp = await fetch(base + '?acao=resumo_dia&data=' + encodeURIComponent(dataBR), { cache: 'no-store' });
+    if(!resp.ok) return {};
+    const json = await resp.json();
+    const regs = Array.isArray(json.registros) ? json.registros : [];
+    const mapa = {};
+    regs.forEach(r => {
+      const chave = normalizarNome(r.nome);
+      if(chave) mapa[chave] = r;
+    });
+    return mapa;
+  }catch(e){
+    console.warn('[Painel TL] falha ao buscar ponto Jornada:', e);
+    return {};
+  }
+}
+
 async function carregar(){
   const data = $('#fData').value;
   if(!data) return;
 
   try{
     const url = CONFIG.API_URL + '?action=getLancamentos&data=' + encodeURIComponent(data);
-    const res = await fetch(url, { cache: 'no-store' });
+    const [res, pontoMap] = await Promise.all([
+      fetch(url, { cache: 'no-store' }),
+      buscarPontoDoDia(data)
+    ]);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     let lista = await res.json();
     if(!Array.isArray(lista)) lista = [];
@@ -202,6 +247,11 @@ async function carregar(){
       if(!mapa[chave]) mapa[chave] = { nome: lanc.Motorista || chave, viagens: [] };
 
       const primeira = (lanc.Paradas && lanc.Paradas[0]) || {};
+      // Almoço vem do app Jornada (ponto): parada = início, retorno = término
+      const ponto = pontoMap[chave] || {};
+      const inicioAlmoco = ponto.parada || lanc.HoraParada || lanc.InicioAlmoco || lanc.HoraInicioAlmoco || '';
+      const terminoAlmoco = ponto.retorno || lanc.HoraRetorno || lanc.FimAlmoco || lanc.HoraFimAlmoco || '';
+
       mapa[chave].viagens.push({
         placa: lanc.Placa || '',
         operacao: lanc.Operacao || '',
@@ -212,8 +262,8 @@ async function carregar(){
         fechamentoBau: primeira.HoraFechamentoBau || '',
         saidaLoja: primeira.HoraSaida || '',
         totalLoja: primeira.TotalLoja || '',
-        inicioAlmoco: lanc.HoraParada || lanc.InicioAlmoco || lanc.HoraInicioAlmoco || lanc.Parada || '',
-        terminoAlmoco: lanc.HoraRetorno || lanc.FimAlmoco || lanc.HoraFimAlmoco || lanc.Retorno || '',
+        inicioAlmoco,
+        terminoAlmoco,
         chegadaCD: lanc.HoraChegadaCD || '',
         kmChegada: lanc.KmChegada || '',
         horasViagem: lanc.TotalHorasViagem || '',
