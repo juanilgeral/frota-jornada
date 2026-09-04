@@ -398,8 +398,15 @@
 
 <script>
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec'
+  API_URL: 'https://script.google.com/macros/s/AKfycbymMok1wWF8985aeyKS3nsjdiqIoLeMgEGIHF3GO2vvr_ErcDtYJmzM3gb9ju4YK9Ae/exec',
+  /*
+   * API do app Jornada (ponto / almoço).
+   * Cole aqui a MESMA URL do Apps Script configurada no app Jornada.
+   * Se deixar vazio, tenta usar a URL salva no navegador (localStorage).
+   */
+  JORNADA_API_URL: 'https://script.google.com/macros/s/AKfycbxrwfM5xkgod6aCg7PEiJbXys2iHMtgwqyJQhKvGBnZTbutBZPZkI4bTXcCruDaTYW4/exec'
 };
+const SCRIPT_URL_KEY = 'jornadatrack_script_url';
 const REFRESH_MS = 15000;
 const OPS_PADRAO = ['LS', 'TL', 'HT', 'CV'];
 
@@ -420,7 +427,40 @@ function esc(v) {
 }
 
 function normalizarNome(n) {
-  return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+  return String(n || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
+}
+
+function urlPontoJornada() {
+  const cfg = (CONFIG.JORNADA_API_URL || '').trim();
+  if (cfg) return cfg;
+  return (localStorage.getItem(SCRIPT_URL_KEY) || '').trim();
+}
+
+async function buscarPontoDoDia(dataISO) {
+  const base = urlPontoJornada();
+  if (!base || !dataISO) return {};
+  try {
+    let dataBR = String(dataISO).trim();
+    const m = dataBR.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) dataBR = `${m[3]}/${m[2]}/${m[1]}`;
+    const resp = await fetch(base + '?acao=resumo_dia&data=' + encodeURIComponent(dataBR), { cache: 'no-store' });
+    if (!resp.ok) return {};
+    const json = await resp.json();
+    const regs = Array.isArray(json.registros) ? json.registros : [];
+    const mapa = {};
+    regs.forEach(r => {
+      const chave = normalizarNome(r.nome);
+      if (chave) mapa[chave] = r;
+    });
+    return mapa;
+  } catch (e) {
+    console.warn('[Painel Admin] falha ao buscar ponto Jornada:', e);
+    return {};
+  }
 }
 
 function operacaoPassaFiltro(op, filtro) {
@@ -456,7 +496,10 @@ async function carregar() {
 
   try {
     const url = CONFIG.API_URL + '?action=getLancamentos&data=' + encodeURIComponent(data);
-    const res = await fetch(url, { cache: 'no-store' });
+    const [res, pontoMap] = await Promise.all([
+      fetch(url, { cache: 'no-store' }),
+      buscarPontoDoDia(data)
+    ]);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     let lista = await res.json();
     if (!Array.isArray(lista)) lista = [];
@@ -468,6 +511,7 @@ async function carregar() {
       if (!mapa[chave]) mapa[chave] = { nome: lanc.Motorista || chave, viagens: [] };
 
       const primeira = (lanc.Paradas && lanc.Paradas[0]) || {};
+      const ponto = pontoMap[chave] || {};
       mapa[chave].viagens.push({
         placa: lanc.Placa || '',
         operacao: lanc.Operacao || '',
@@ -478,8 +522,10 @@ async function carregar() {
         fechamentoBau: primeira.HoraFechamentoBau || '',
         saidaLoja: primeira.HoraSaida || '',
         totalLoja: primeira.TotalLoja || '',
-        parada: lanc.HoraParada || lanc.InicioAlmoco || lanc.HoraInicioAlmoco || lanc.Parada || '',
-        retorno: lanc.HoraRetorno || lanc.FimAlmoco || lanc.HoraFimAlmoco || lanc.Retorno || '',
+        parada: ponto.parada || lanc.HoraParada || lanc.InicioAlmoco || '',
+        retorno: ponto.retorno || lanc.HoraRetorno || lanc.FimAlmoco || '',
+        inicioPonto: ponto.inicio || '',
+        fimPonto: ponto.fim || '',
         chegadaCD: lanc.HoraChegadaCD || '',
         kmChegada: lanc.KmChegada || '',
         horasViagem: lanc.TotalHorasViagem || '',
@@ -540,7 +586,7 @@ function render() {
       linhas += `<tr class="${classe}">
         ${nomeCel}
         <td style="font-weight:700;letter-spacing:.3px">${esc(v.placa || '—')}</td>
-        <td>${vazio}</td>
+        <td class="time">${v.inicioPonto ? `<span class="pill pill-green">${esc(v.inicioPonto)}</span>` : vazio}</td>
         <td>${v.operacao ? `<span class="pill ${operacaoClass(v.operacao)}">${esc(v.operacao)}</span>` : vazio}</td>
         <td>${esc(v.destino || '—')}</td>
         <td class="time">${v.saidaVeiculo || vazio}</td>
@@ -553,7 +599,7 @@ function render() {
         <td class="time">${v.retorno ? `<span class="pill pill-blue">${esc(v.retorno)}</span>` : vazio}</td>
         <td class="time">${v.chegadaCD || vazio}</td>
         <td>${v.kmChegada || vazio}</td>
-        <td>${vazio}</td>
+        <td class="time">${v.fimPonto ? `<span class="pill pill-red">${esc(v.fimPonto)}</span>` : vazio}</td>
         <td class="time">${v.horasViagem || vazio}</td>
         <td>${vazio}</td>
         <td><span class="pill ${st.cls}">${esc(st.label)}</span></td>
